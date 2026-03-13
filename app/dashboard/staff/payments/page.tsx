@@ -1,25 +1,17 @@
 import { supabase } from '@/lib/supabase'
 import Link from 'next/link'
 import { SignOutButton } from '@clerk/nextjs'
+import Image from 'next/image'
 
 export default async function StaffPayments() {
   const { data: payments } = await supabase
     .from('payments')
     .select(`
-      id,
-      amount,
-      status,
-      method,
-      paid_at,
-      created_at,
-      patients (
-        users ( full_name )
-      ),
+      id, amount, status, method, paid_at, created_at,
+      patients ( users ( full_name ) ),
       appointments (
         scheduled_at,
-        patient_treatments (
-          treatments ( name )
-        )
+        patient_treatments ( treatments ( name ) )
       )
     `)
     .order('created_at', { ascending: false })
@@ -30,11 +22,10 @@ export default async function StaffPayments() {
 
   return (
     <div className="min-h-screen bg-gray-950 text-white flex">
-      {/* Sidebar */}
       <div className="w-64 border-r border-gray-800 flex flex-col min-h-screen">
         <div className="px-6 py-5 border-b border-gray-800">
-          <h1 className="text-lg font-bold">Cosmediq</h1>
-          <p className="text-xs text-gray-500 mt-0.5">Staff Portal</p>
+          <Image src="/logo.png" alt="Cosmediq" width={120} height={40} className="object-contain" />
+          <p className="text-xs text-gray-500 mt-1">Staff Portal</p>
         </div>
         <nav className="flex-1 px-3 py-4 space-y-1">
           {[
@@ -62,12 +53,10 @@ export default async function StaffPayments() {
         </div>
       </div>
 
-      {/* Main content */}
       <div className="flex-1 px-8 py-8 overflow-auto">
         <h2 className="text-2xl font-bold mb-2">Payments</h2>
         <p className="text-gray-400 mb-8">Billing and payment management</p>
 
-        {/* Stats */}
         <div className="grid grid-cols-3 gap-4 mb-8">
           <div className="bg-gray-900 rounded-xl p-5 border border-gray-800">
             <p className="text-gray-400 text-sm">Total collected</p>
@@ -83,7 +72,6 @@ export default async function StaffPayments() {
           </div>
         </div>
 
-        {/* Payments table */}
         <div className="bg-gray-900 rounded-xl border border-gray-800 overflow-hidden">
           {payments && payments.length > 0 ? (
             <table className="w-full text-sm">
@@ -102,7 +90,6 @@ export default async function StaffPayments() {
                   const name = (payment.patients as any)?.users?.full_name ?? 'Unknown'
                   const treatment = (payment.appointments as any)?.patient_treatments?.treatments?.name ?? 'Unknown'
                   const date = new Date(payment.created_at)
-
                   return (
                     <tr key={payment.id} className="hover:bg-gray-800 transition-colors">
                       <td className="px-6 py-4 font-medium">{name}</td>
@@ -129,7 +116,6 @@ export default async function StaffPayments() {
           ) : (
             <div className="px-6 py-12 text-center">
               <p className="text-gray-500">No payments recorded yet.</p>
-              <p className="text-gray-600 text-xs mt-1">Payments will appear here once added.</p>
             </div>
           )}
         </div>

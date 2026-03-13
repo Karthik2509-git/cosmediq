@@ -1,6 +1,7 @@
 import { SignOutButton } from '@clerk/nextjs'
 import { supabase } from '@/lib/supabase'
 import Link from 'next/link'
+import Image from 'next/image'
 
 export default async function DoctorDashboard() {
   const today = new Date()
@@ -47,10 +48,10 @@ export default async function DoctorDashboard() {
     <div className="min-h-screen bg-gray-950 text-white flex">
       {/* Sidebar */}
       <div className="w-64 border-r border-gray-800 flex flex-col min-h-screen">
-        <div className="px-6 py-5 border-b border-gray-800">
-          <h1 className="text-lg font-bold">Cosmediq</h1>
-          <p className="text-xs text-gray-500 mt-0.5">Doctor Portal</p>
-        </div>
+      <div className="px-6 py-5 border-b border-gray-800">
+      <Image src="/logo.png" alt="Cosmediq" width={120} height={40} className="object-contain" />
+      <p className="text-xs text-gray-500 mt-1">Doctor Portal</p>
+      </div>
         <nav className="flex-1 px-3 py-4 space-y-1">
           {[
             { label: 'Dashboard', href: '/dashboard/doctor', active: true },
