@@ -1,8 +1,8 @@
 import { SignOutButton } from '@clerk/nextjs'
 import { supabase } from '@/lib/supabase'
+import Link from 'next/link'
 
 export default async function DoctorDashboard() {
-  // Fetch today's appointments with patient and treatment info
   const today = new Date()
   today.setHours(0, 0, 0, 0)
   const tomorrow = new Date(today)
@@ -44,25 +44,50 @@ export default async function DoctorDashboard() {
     .gte('scheduled_at', today.toISOString())
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white">
-      {/* Header */}
-      <div className="border-b border-gray-800 px-8 py-4 flex justify-between items-center">
-        <div>
-          <h1 className="text-xl font-bold text-white">Cosmediq</h1>
-          <p className="text-xs text-gray-500">Doctor Portal</p>
+    <div className="min-h-screen bg-gray-950 text-white flex">
+      {/* Sidebar */}
+      <div className="w-64 border-r border-gray-800 flex flex-col min-h-screen">
+        <div className="px-6 py-5 border-b border-gray-800">
+          <h1 className="text-lg font-bold">Cosmediq</h1>
+          <p className="text-xs text-gray-500 mt-0.5">Doctor Portal</p>
         </div>
-        <div className="flex items-center gap-4">
-          <span className="text-sm text-gray-400">Dr. Karthik</span>
+        <nav className="flex-1 px-3 py-4 space-y-1">
+          {[
+            { label: 'Dashboard', href: '/dashboard/doctor', active: true },
+            { label: 'My Patients', href: '/dashboard/doctor/patients' },
+            { label: 'Appointments', href: '/dashboard/doctor/appointments' },
+            { label: 'Treatments', href: '/dashboard/doctor/treatments' },
+          ].map((item) => (
+            <Link
+              key={item.label}
+              href={item.href}
+              className={`flex items-center px-3 py-2.5 rounded-lg text-sm transition-colors ${
+                item.active
+                  ? 'bg-gray-800 text-white font-medium'
+                  : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+              }`}
+            >
+              {item.label}
+            </Link>
+          ))}
+        </nav>
+        <div className="px-3 py-4 border-t border-gray-800">
+          <div className="px-3 py-2 mb-2">
+            <p className="text-sm font-medium">Dr. Karthik</p>
+            <p className="text-xs text-gray-500">Hair & Skin</p>
+          </div>
           <SignOutButton>
-            <button className="text-sm px-3 py-1.5 rounded-lg border border-gray-700 hover:bg-gray-800">
+            <button className="w-full text-left px-3 py-2.5 rounded-lg text-sm text-gray-400 hover:bg-gray-800 hover:text-white transition-colors">
               Sign out
             </button>
           </SignOutButton>
         </div>
       </div>
 
-      <div className="px-8 py-8">
-        <h2 className="text-2xl font-bold mb-6">Good morning, Dr. Karthik</h2>
+      {/* Main content */}
+      <div className="flex-1 px-8 py-8 overflow-auto">
+        <h2 className="text-2xl font-bold mb-2">Good morning, Dr. Karthik</h2>
+        <p className="text-gray-400 mb-8">Here's what's happening today</p>
 
         {/* Stats */}
         <div className="grid grid-cols-4 gap-4 mb-8">
@@ -81,7 +106,12 @@ export default async function DoctorDashboard() {
 
         {/* Appointments */}
         <div className="bg-gray-900 rounded-xl border border-gray-800 p-6">
-          <h3 className="font-semibold text-lg mb-4">Today's appointments</h3>
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="font-semibold text-lg">Today's appointments</h3>
+            <Link href="/dashboard/doctor/appointments" className="text-sm text-blue-400 hover:text-blue-300">
+              View all
+            </Link>
+          </div>
           {appointments && appointments.length > 0 ? (
             <div className="space-y-3">
               {appointments.map((apt) => {
@@ -95,16 +125,16 @@ export default async function DoctorDashboard() {
                 return (
                   <div key={apt.id} className="p-4 bg-gray-800 rounded-lg">
                     <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center text-sm font-bold">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-full bg-gray-700 flex items-center justify-center text-sm font-bold">
                           {name[0]}
                         </div>
                         <div>
-                          <p className="font-medium">{name}</p>
-                          <p className="text-sm text-gray-400">{treatment} — Sitting {done}/{total}</p>
+                          <p className="font-medium text-sm">{name}</p>
+                          <p className="text-xs text-gray-400">{treatment} — Sitting {done}/{total}</p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-3">
                         <span className="text-sm text-gray-400">{time}</span>
                         <span className={`text-xs px-2 py-1 rounded-full ${
                           apt.status === 'completed'
@@ -117,17 +147,13 @@ export default async function DoctorDashboard() {
                         </span>
                       </div>
                     </div>
-                    {/* Progress bar */}
                     <div className="mt-2">
                       <div className="flex justify-between text-xs text-gray-500 mb-1">
                         <span>Treatment progress</span>
                         <span>{progress}%</span>
                       </div>
                       <div className="w-full bg-gray-700 rounded-full h-1.5">
-                        <div
-                          className="bg-blue-500 h-1.5 rounded-full"
-                          style={{ width: `${progress}%` }}
-                        />
+                        <div className="bg-blue-500 h-1.5 rounded-full" style={{ width: `${progress}%` }} />
                       </div>
                     </div>
                   </div>
