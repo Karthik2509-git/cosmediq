@@ -1,6 +1,6 @@
 import { supabase } from '@/lib/supabase'
-import Link from 'next/link'
 import DoctorSidebar from '../components/Sidebar'
+import MarkCompleteButton from './MarkCompleteButton'
 
 export default async function DoctorAppointments() {
   const { data: appointments } = await supabase
@@ -9,7 +9,7 @@ export default async function DoctorAppointments() {
       id, scheduled_at, status, notes,
       patients ( users ( full_name ) ),
       patient_treatments (
-        sittings_completed, sittings_total,
+        id, sittings_completed, sittings_total,
         treatments ( name )
       ),
       branches ( name )
@@ -33,7 +33,7 @@ export default async function DoctorAppointments() {
                 <th className="text-left px-6 py-4 font-medium">Progress</th>
                 <th className="text-left px-6 py-4 font-medium">Branch</th>
                 <th className="text-left px-6 py-4 font-medium">Date & Time</th>
-                <th className="text-left px-6 py-4 font-medium">Status</th>
+                <th className="text-left px-6 py-4 font-medium">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-800">
@@ -42,6 +42,7 @@ export default async function DoctorAppointments() {
                 const treatment = (apt.patient_treatments as any)?.treatments?.name ?? 'Unknown'
                 const done = (apt.patient_treatments as any)?.sittings_completed ?? 0
                 const total = (apt.patient_treatments as any)?.sittings_total ?? 0
+                const ptId = (apt.patient_treatments as any)?.id
                 const branch = (apt.branches as any)?.name ?? 'Unknown'
                 const date = new Date(apt.scheduled_at)
                 const progress = total > 0 ? Math.round((done / total) * 100) : 0
@@ -70,13 +71,11 @@ export default async function DoctorAppointments() {
                       {date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })} {date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </td>
                     <td className="px-6 py-4">
-                      <span className={`text-xs px-2 py-1 rounded-full ${
-                        apt.status === 'completed' ? 'bg-green-900 text-green-300' :
-                        apt.status === 'scheduled' ? 'bg-blue-900 text-blue-300' :
-                        'bg-yellow-900 text-yellow-300'
-                      }`}>
-                        {apt.status}
-                      </span>
+                      <MarkCompleteButton
+                        appointmentId={apt.id}
+                        patientTreatmentId={ptId}
+                        currentStatus={apt.status}
+                      />
                     </td>
                   </tr>
                 )
