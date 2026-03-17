@@ -30,19 +30,14 @@ export default async function DoctorPatients() {
           {patients?.map((patient) => {
             const name = (patient.users as any)?.full_name ?? 'Unknown'
             const email = (patient.users as any)?.email ?? ''
-            const treatments = patient.patient_treatments as any[]
-            const activeTreatment = treatments?.find(t => t.status === 'active')
-            const treatmentName = activeTreatment?.treatments?.name ?? 'No active treatment'
-            const done = activeTreatment?.sittings_completed ?? 0
-            const total = activeTreatment?.sittings_total ?? 0
-            const progress = total > 0 ? Math.round((done / total) * 100) : 0
+            const treatments = (patient.patient_treatments as any[])?.filter(t => t.status === 'active') ?? []
             const age = patient.date_of_birth
               ? Math.floor((new Date().getTime() - new Date(patient.date_of_birth).getTime()) / 3.15576e10)
               : null
 
             return (
               <div key={patient.id} className="bg-gray-900 rounded-xl border border-gray-800 p-6">
-                <div className="flex items-start justify-between">
+                <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center gap-4">
                     <div className="w-12 h-12 rounded-full bg-gray-700 flex items-center justify-center text-lg font-bold">
                       {name[0]}
@@ -60,23 +55,32 @@ export default async function DoctorPatients() {
                       </div>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <p className="text-sm font-medium text-white">{treatmentName}</p>
-                    {activeTreatment && (
-                      <p className="text-xs text-gray-400 mt-0.5">{done}/{total} sittings</p>
-                    )}
-                  </div>
+                  <span className="text-xs text-gray-500">{treatments.length} active treatment{treatments.length !== 1 ? 's' : ''}</span>
                 </div>
-                {activeTreatment && (
-                  <div className="mt-4">
-                    <div className="flex justify-between text-xs text-gray-500 mb-1">
-                      <span>Treatment progress</span>
-                      <span>{progress}%</span>
-                    </div>
-                    <div className="w-full bg-gray-700 rounded-full h-1.5">
-                      <div className="bg-blue-500 h-1.5 rounded-full" style={{ width: `${progress}%` }} />
-                    </div>
+
+                {treatments.length > 0 ? (
+                  <div className="space-y-3">
+                    {treatments.map((t: any) => {
+                      const progress = t.sittings_total > 0 ? Math.round((t.sittings_completed / t.sittings_total) * 100) : 0
+                      return (
+                        <div key={t.id} className="bg-gray-800 rounded-lg p-4">
+                          <div className="flex justify-between items-center mb-2">
+                            <p className="text-sm font-medium text-white">{t.treatments?.name}</p>
+                            <p className="text-xs text-gray-400">{t.sittings_completed}/{t.sittings_total} sittings</p>
+                          </div>
+                          <div className="flex justify-between text-xs text-gray-500 mb-1">
+                            <span>Progress</span>
+                            <span>{progress}%</span>
+                          </div>
+                          <div className="w-full bg-gray-700 rounded-full h-1.5">
+                            <div className="bg-blue-500 h-1.5 rounded-full" style={{ width: `${progress}%` }} />
+                          </div>
+                        </div>
+                      )
+                    })}
                   </div>
+                ) : (
+                  <p className="text-xs text-gray-500">No active treatments</p>
                 )}
               </div>
             )
