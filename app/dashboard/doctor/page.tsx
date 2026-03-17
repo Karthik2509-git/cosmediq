@@ -1,8 +1,6 @@
 import { supabase } from '@/lib/supabase'
 import Link from 'next/link'
-import Image from 'next/image'
-import { SignOutButton } from '@clerk/nextjs'
-import DoctorSidebar from '../staff/components/Sidebar'
+import DoctorSidebar from './components/Sidebar'
 
 export default async function DoctorDashboard() {
   const today = new Date()

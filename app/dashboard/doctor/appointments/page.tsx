@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase'
-import DoctorSidebar from '../../staff/components/Sidebar'
+import Link from 'next/link'
+import DoctorSidebar from '../components/Sidebar'
 
 export default async function DoctorAppointments() {
   const { data: appointments } = await supabase
