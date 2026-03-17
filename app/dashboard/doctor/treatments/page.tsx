@@ -1,5 +1,7 @@
 import { supabase } from '@/lib/supabase'
 import DoctorSidebar from '../components/Sidebar'
+import AddTreatmentButton from './AddTreatmentButton'
+import EditTreatmentButton from './EditTreatmentButton'
 
 export default async function DoctorTreatments() {
   const { data: treatments } = await supabase
@@ -24,7 +26,10 @@ export default async function DoctorTreatments() {
       <DoctorSidebar active="Treatments" />
 
       <div className="flex-1 px-8 py-8 overflow-auto">
-        <h2 className="text-2xl font-bold mb-2">Treatments</h2>
+        <div className="flex justify-between items-center mb-2">
+          <h2 className="text-2xl font-bold">Treatments</h2>
+          <AddTreatmentButton />
+        </div>
         <p className="text-gray-400 mb-8">{treatments?.length ?? 0} treatments offered</p>
 
         <div className="grid grid-cols-3 gap-4">
@@ -56,12 +61,22 @@ export default async function DoctorTreatments() {
                       {t.category}
                     </span>
                   </div>
-                  {t.price_per_sitting && (
-                    <div className="text-right">
-                      <p className="text-xs text-gray-500">per sitting</p>
-                      <p className="text-lg font-bold text-white">₹{Number(t.price_per_sitting).toLocaleString('en-IN')}</p>
-                    </div>
-                  )}
+                  <div className="flex flex-col items-end gap-2">
+                    {t.price_per_sitting && (
+                      <div className="text-right">
+                        <p className="text-xs text-gray-500">per sitting</p>
+                        <p className="text-lg font-bold text-white">₹{Number(t.price_per_sitting).toLocaleString('en-IN')}</p>
+                      </div>
+                    )}
+                    <EditTreatmentButton treatment={{
+                      id: t.id,
+                      name: t.name,
+                      category: t.category,
+                      description: t.description,
+                      total_sittings: t.total_sittings,
+                      price_per_sitting: t.price_per_sitting,
+                    }} />
+                  </div>
                 </div>
 
                 {t.description && (
