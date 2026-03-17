@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase'
 import StaffSidebar from '../components/Sidebar'
+import RecordPaymentButton from './RecordPaymentButton'
 
 export default async function StaffPayments() {
   const { data: payments } = await supabase
@@ -14,6 +15,10 @@ export default async function StaffPayments() {
     `)
     .order('created_at', { ascending: false })
 
+  const { data: patients } = await supabase
+    .from('patients')
+    .select('id, users ( full_name, email )')
+
   const total = payments?.reduce((sum, p) => sum + (p.status === 'paid' ? Number(p.amount) : 0), 0) ?? 0
   const pending = payments?.filter(p => p.status === 'pending').length ?? 0
   const paid = payments?.filter(p => p.status === 'paid').length ?? 0
@@ -23,7 +28,10 @@ export default async function StaffPayments() {
       <StaffSidebar active="Payments" />
 
       <div className="flex-1 px-8 py-8 overflow-auto">
-        <h2 className="text-2xl font-bold mb-2">Payments</h2>
+        <div className="flex justify-between items-center mb-2">
+          <h2 className="text-2xl font-bold">Payments</h2>
+          <RecordPaymentButton patients={patients ?? []} />
+        </div>
         <p className="text-gray-400 mb-8">Billing and payment management</p>
 
         <div className="grid grid-cols-3 gap-4 mb-8">
