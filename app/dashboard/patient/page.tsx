@@ -1,15 +1,53 @@
-import { SignOutButton } from '@clerk/nextjs'
+import { auth } from '@clerk/nextjs/server'
 import { supabase } from '@/lib/supabase'
+import { SignOutButton } from '@clerk/nextjs'
 import Image from 'next/image'
+import { redirect } from 'next/navigation'
 
 export default async function PatientDashboard() {
-  const patientId = 'cccccccc-0001-0000-0000-000000000001'
+  const { userId } = await auth()
+  if (!userId) redirect('/login')
+
+  // Find patient record using Clerk user ID
+  const { data: userRecord } = await supabase
+    .from('users')
+    .select('id')
+    .eq('clerk_id', userId)
+    .single()
+
+  if (!userRecord) {
+    return (
+      <div className="min-h-screen bg-gray-950 text-white flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-xl font-bold mb-2">Profile not found</h2>
+          <p className="text-gray-400 text-sm">Your account is not linked to a patient profile yet. Please contact the clinic.</p>
+          <SignOutButton>
+            <button className="mt-6 px-4 py-2 bg-white text-black rounded-lg text-sm">Sign out</button>
+          </SignOutButton>
+        </div>
+      </div>
+    )
+  }
 
   const { data: patient } = await supabase
     .from('patients')
-    .select(`users ( full_name, email )`)
-    .eq('id', patientId)
+    .select('id, users ( full_name, email )')
+    .eq('user_id', userRecord.id)
     .single()
+
+  if (!patient) {
+    return (
+      <div className="min-h-screen bg-gray-950 text-white flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-xl font-bold mb-2">Patient profile not found</h2>
+          <p className="text-gray-400 text-sm">Please contact the clinic to set up your profile.</p>
+          <SignOutButton>
+            <button className="mt-6 px-4 py-2 bg-white text-black rounded-lg text-sm">Sign out</button>
+          </SignOutButton>
+        </div>
+      </div>
+    )
+  }
 
   const { data: treatments } = await supabase
     .from('patient_treatments')
@@ -17,7 +55,7 @@ export default async function PatientDashboard() {
       id, sittings_completed, sittings_total, status, start_date,
       treatments ( name, category )
     `)
-    .eq('patient_id', patientId)
+    .eq('patient_id', patient.id)
 
   const { data: appointments } = await supabase
     .from('appointments')
@@ -25,11 +63,11 @@ export default async function PatientDashboard() {
       id, scheduled_at, status,
       patient_treatments ( treatments ( name ) )
     `)
-    .eq('patient_id', patientId)
+    .eq('patient_id', patient.id)
     .order('scheduled_at')
     .limit(5)
 
-  const name = (patient?.users as any)?.full_name ?? 'Patient'
+  const name = (patient.users as any)?.full_name ?? 'Patient'
 
   return (
     <div className="min-h-screen bg-gray-950 text-white">

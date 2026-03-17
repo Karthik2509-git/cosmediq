@@ -1,8 +1,28 @@
+import { auth } from '@clerk/nextjs/server'
 import { supabase } from '@/lib/supabase'
 import Link from 'next/link'
+import { redirect } from 'next/navigation'
 import DoctorSidebar from './components/Sidebar'
 
 export default async function DoctorDashboard() {
+  const { userId } = await auth()
+  if (!userId) redirect('/login')
+
+  // Get doctor record using Clerk ID
+  const { data: userRecord } = await supabase
+    .from('users')
+    .select('id')
+    .eq('clerk_id', userId)
+    .single()
+
+  const { data: doctorRecord } = await supabase
+    .from('doctors')
+    .select('id')
+    .eq('user_id', userRecord?.id)
+    .single()
+
+  const doctorId = doctorRecord?.id
+
   const today = new Date()
   today.setHours(0, 0, 0, 0)
   const tomorrow = new Date(today)
@@ -18,13 +38,15 @@ export default async function DoctorDashboard() {
         treatments ( name )
       )
     `)
+    .eq('doctor_id', doctorId)
     .gte('scheduled_at', today.toISOString())
     .lte('scheduled_at', tomorrow.toISOString())
     .order('scheduled_at')
 
   const { count: totalPatients } = await supabase
-    .from('patients')
-    .select('*', { count: 'exact', head: true })
+    .from('appointments')
+    .select('patient_id', { count: 'exact', head: true })
+    .eq('doctor_id', doctorId)
 
   const { count: activetreatments } = await supabase
     .from('patient_treatments')
@@ -34,6 +56,7 @@ export default async function DoctorDashboard() {
   const { count: completedToday } = await supabase
     .from('appointments')
     .select('*', { count: 'exact', head: true })
+    .eq('doctor_id', doctorId)
     .eq('status', 'completed')
     .gte('scheduled_at', today.toISOString())
 
@@ -74,7 +97,7 @@ export default async function DoctorDashboard() {
                 const done = (apt.patient_treatments as any)?.sittings_completed ?? 0
                 const total = (apt.patient_treatments as any)?.sittings_total ?? 0
                 const time = new Date(apt.scheduled_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                const progress = Math.round((done / total) * 100)
+                const progress = total > 0 ? Math.round((done / total) * 100) : 0
 
                 return (
                   <div key={apt.id} className="p-4 bg-gray-800 rounded-lg">
