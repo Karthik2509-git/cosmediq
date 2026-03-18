@@ -291,71 +291,122 @@ function PatientsTab() {
 }
 
 function AppointmentsTab() {
-  const [patients, setPatients] = useState<any[]>([])
-  const [fetching, setFetching] = useState(true)
-  const [form, setForm] = useState({ patient_id: '', scheduled_at: '', notes: '' })
-  const [loading, setLoading] = useState(false)
-  const [message, setMessage] = useState('')
-
-  useEffect(() => {
-    async function fetchData() {
-      const res = await fetch('/api/staff/get-patients')
-      const data = await res.json()
-      setPatients(data.patients ?? [])
-      setFetching(false)
-    }
-    fetchData()
-  }, [])
-
-  async function handleSubmit() {
-    setLoading(true)
-    setMessage('')
-    const res = await fetch('/api/staff/add-appointment', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(form),
+    const [patients, setPatients] = useState<any[]>([])
+    const [doctors, setDoctors] = useState<any[]>([])
+    const [branches, setBranches] = useState<any[]>([])
+    const [treatments, setTreatments] = useState<any[]>([])
+    const [fetching, setFetching] = useState(true)
+    const [form, setForm] = useState({
+      patient_id: '',
+      doctor_id: '',
+      branch_id: '',
+      treatment_id: '',
+      scheduled_at: '',
+      notes: ''
     })
-    const data = await res.json()
-    setMessage(data.success ? '✅ Appointment scheduled!' : '❌ ' + data.error)
-    if (data.success) setForm({ patient_id: '', scheduled_at: '', notes: '' })
-    setLoading(false)
-  }
-
-  if (fetching) return <p className="text-gray-400 text-sm">Loading...</p>
-
-  return (
-    <div className="max-w-lg">
-      <h3 className="font-semibold text-lg mb-6">Schedule Appointment</h3>
-      <div className="space-y-4">
-        <div>
-          <label className="text-sm text-gray-400 mb-1 block">Patient</label>
-          <select value={form.patient_id} onChange={e => setForm({...form, patient_id: e.target.value})}
-            className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500">
-            <option value="">Select patient</option>
-            {patients.map(p => (
-              <option key={p.id} value={p.id}>{(p.users as any)?.full_name} — {(p.users as any)?.email}</option>
-            ))}
-          </select>
+    const [loading, setLoading] = useState(false)
+    const [message, setMessage] = useState('')
+  
+    useEffect(() => {
+      async function fetchData() {
+        const [pRes, dRes, bRes, tRes] = await Promise.all([
+          fetch('/api/staff/get-patients'),
+          fetch('/api/staff/get-doctors'),
+          fetch('/api/staff/get-branches'),
+          fetch('/api/staff/get-treatments'),
+        ])
+        const pData = await pRes.json()
+        const dData = await dRes.json()
+        const bData = await bRes.json()
+        const tData = await tRes.json()
+        setPatients(pData.patients ?? [])
+        setDoctors(dData.doctors ?? [])
+        setBranches(bData.branches ?? [])
+        setTreatments(tData.treatments ?? [])
+        setFetching(false)
+      }
+      fetchData()
+    }, [])
+  
+    async function handleSubmit() {
+      setLoading(true)
+      setMessage('')
+      const res = await fetch('/api/staff/add-appointment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      })
+      const data = await res.json()
+      setMessage(data.success ? '✅ Appointment scheduled!' : '❌ ' + data.error)
+      if (data.success) setForm({ patient_id: '', doctor_id: '', branch_id: '', treatment_id: '', scheduled_at: '', notes: '' })
+      setLoading(false)
+    }
+  
+    if (fetching) return <p className="text-gray-400 text-sm">Loading...</p>
+  
+    return (
+      <div className="max-w-lg">
+        <h3 className="font-semibold text-lg mb-6">Schedule Appointment</h3>
+        <div className="space-y-4">
+          <div>
+            <label className="text-sm text-gray-400 mb-1 block">Patient</label>
+            <select value={form.patient_id} onChange={e => setForm({...form, patient_id: e.target.value})}
+              className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500">
+              <option value="">Select patient</option>
+              {patients.map(p => (
+                <option key={p.id} value={p.id}>{(p.users as any)?.full_name} — {(p.users as any)?.email}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="text-sm text-gray-400 mb-1 block">Doctor</label>
+            <select value={form.doctor_id} onChange={e => setForm({...form, doctor_id: e.target.value})}
+              className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500">
+              <option value="">Select doctor</option>
+              {doctors.map(d => (
+                <option key={d.id} value={d.id}>{(d.users as any)?.full_name} — {d.specialization}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="text-sm text-gray-400 mb-1 block">Branch</label>
+            <select value={form.branch_id} onChange={e => setForm({...form, branch_id: e.target.value})}
+              className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500">
+              <option value="">Select branch</option>
+              {branches.map(b => (
+                <option key={b.id} value={b.id}>{b.name} — {b.city}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="text-sm text-gray-400 mb-1 block">Treatment</label>
+            <select value={form.treatment_id} onChange={e => setForm({...form, treatment_id: e.target.value})}
+              className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500">
+              <option value="">Select treatment</option>
+              {treatments.map(t => (
+                <option key={t.id} value={t.id}>{t.name}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="text-sm text-gray-400 mb-1 block">Date & Time</label>
+            <input type="datetime-local" value={form.scheduled_at} onChange={e => setForm({...form, scheduled_at: e.target.value})}
+              className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500" />
+          </div>
+          <div>
+            <label className="text-sm text-gray-400 mb-1 block">Notes (optional)</label>
+            <textarea value={form.notes} onChange={e => setForm({...form, notes: e.target.value})}
+              className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500" rows={3} placeholder="Any notes..." />
+          </div>
+          {message && <p className="text-sm">{message}</p>}
+          <button onClick={handleSubmit} disabled={loading}
+            className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white rounded-lg px-4 py-2.5 text-sm font-medium transition-colors">
+            {loading ? 'Scheduling...' : 'Schedule Appointment'}
+          </button>
         </div>
-        <div>
-          <label className="text-sm text-gray-400 mb-1 block">Date & Time</label>
-          <input type="datetime-local" value={form.scheduled_at} onChange={e => setForm({...form, scheduled_at: e.target.value})}
-            className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500" />
-        </div>
-        <div>
-          <label className="text-sm text-gray-400 mb-1 block">Notes (optional)</label>
-          <textarea value={form.notes} onChange={e => setForm({...form, notes: e.target.value})}
-            className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500" rows={3} placeholder="Any notes..." />
-        </div>
-        {message && <p className="text-sm">{message}</p>}
-        <button onClick={handleSubmit} disabled={loading}
-          className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white rounded-lg px-4 py-2.5 text-sm font-medium transition-colors">
-          {loading ? 'Scheduling...' : 'Schedule Appointment'}
-        </button>
       </div>
-    </div>
-  )
-}
+    )
+  }
 
 function BranchesTab() {
   const [form, setForm] = useState({ name: '', city: '', address: '' })
