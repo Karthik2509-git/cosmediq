@@ -2,12 +2,13 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { SignOutButton } from '@clerk/nextjs'
-import { LayoutDashboard, CreditCard, Settings, LogOut } from 'lucide-react'
+import { LayoutDashboard, CreditCard, Settings, Users, LogOut } from 'lucide-react'
 
 const navItems = [
   { label: 'Dashboard', href: '/dashboard/staff', icon: LayoutDashboard },
   { label: 'Payments', href: '/dashboard/staff/payments', icon: CreditCard },
   { label: 'Manage', href: '/dashboard/staff/manage', icon: Settings },
+  { label: 'Users', href: '/dashboard/staff/users', icon: Users },
 ]
 
 export default function StaffSidebar({ active }: { active: string }) {
