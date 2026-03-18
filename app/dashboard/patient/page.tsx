@@ -8,7 +8,6 @@ export default async function PatientDashboard() {
   const { userId } = await auth()
   if (!userId) redirect('/login')
 
-  // Find patient record using Clerk user ID
   const { data: userRecord } = await supabase
     .from('users')
     .select('id')
@@ -31,7 +30,7 @@ export default async function PatientDashboard() {
 
   const { data: patient } = await supabase
     .from('patients')
-    .select('id, users ( full_name, email )')
+    .select('id, date_of_birth, blood_group, users ( full_name, email, phone )')
     .eq('user_id', userRecord.id)
     .single()
 
@@ -67,7 +66,22 @@ export default async function PatientDashboard() {
     .order('scheduled_at')
     .limit(5)
 
+  const { data: payments } = await supabase
+    .from('payments')
+    .select(`
+      id, amount, status, method, created_at,
+      appointments (
+        scheduled_at,
+        patient_treatments ( treatments ( name ) )
+      )
+    `)
+    .eq('patient_id', patient.id)
+    .order('created_at', { ascending: false })
+
   const name = (patient.users as any)?.full_name ?? 'Patient'
+  const email = (patient.users as any)?.email ?? ''
+  const phone = (patient.users as any)?.phone ?? ''
+  const totalPaid = payments?.reduce((sum, p) => sum + (p.status === 'paid' ? Number(p.amount) : 0), 0) ?? 0
 
   return (
     <div className="min-h-screen bg-gray-950 text-white">
@@ -86,16 +100,52 @@ export default async function PatientDashboard() {
         </div>
       </div>
 
-      <div className="px-8 py-8">
+      <div className="px-8 py-8 max-w-6xl mx-auto">
         <h2 className="text-2xl font-bold mb-2">Welcome, {name}</h2>
         <p className="text-gray-400 mb-8">Here's your treatment overview</p>
 
-        <h3 className="font-semibold text-lg mb-4">My treatments</h3>
+        {/* Profile card */}
+        <div className="bg-gray-900 rounded-xl border border-gray-800 p-6 mb-8">
+          <h3 className="font-semibold text-lg mb-4">My Profile</h3>
+          <div className="grid grid-cols-3 gap-6">
+            <div>
+              <p className="text-xs text-gray-500 mb-1">Full Name</p>
+              <p className="text-sm text-white">{name}</p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-500 mb-1">Email</p>
+              <p className="text-sm text-white">{email}</p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-500 mb-1">Phone</p>
+              <p className="text-sm text-white">{phone || 'Not provided'}</p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-500 mb-1">Blood Group</p>
+              <p className="text-sm text-white">{patient.blood_group || 'Not provided'}</p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-500 mb-1">Date of Birth</p>
+              <p className="text-sm text-white">
+                {patient.date_of_birth
+                  ? new Date(patient.date_of_birth).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })
+                  : 'Not provided'}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-500 mb-1">Total Paid</p>
+              <p className="text-sm text-green-400 font-medium">₹{totalPaid.toLocaleString('en-IN')}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Treatments */}
+        <h3 className="font-semibold text-lg mb-4">My Treatments</h3>
         <div className="grid grid-cols-2 gap-4 mb-8">
           {treatments?.map((t) => {
             const tname = (t.treatments as any)?.name ?? 'Unknown'
             const category = (t.treatments as any)?.category ?? ''
-            const progress = Math.round((t.sittings_completed / t.sittings_total) * 100)
+            const progress = t.sittings_total > 0 ? Math.round((t.sittings_completed / t.sittings_total) * 100) : 0
             const remaining = t.sittings_total - t.sittings_completed
             return (
               <div key={t.id} className="bg-gray-900 rounded-xl border border-gray-800 p-6">
@@ -121,43 +171,80 @@ export default async function PatientDashboard() {
                   <span className="text-gray-400">{t.sittings_completed} of {t.sittings_total} sittings done</span>
                   <span className="text-blue-400 font-medium">{remaining} remaining</span>
                 </div>
-                <p className="text-xs text-gray-600 mt-3">
-                  Started {new Date(t.start_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
-                </p>
+                {t.start_date && (
+                  <p className="text-xs text-gray-600 mt-3">
+                    Started {new Date(t.start_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                  </p>
+                )}
               </div>
             )
           })}
         </div>
 
-        <div className="bg-gray-900 rounded-xl border border-gray-800 p-6">
-          <h3 className="font-semibold text-lg mb-4">My appointments</h3>
-          {appointments && appointments.length > 0 ? (
-            <div className="space-y-3">
-              {appointments.map((apt) => {
-                const treatment = (apt.patient_treatments as any)?.treatments?.name ?? 'Unknown'
-                const date = new Date(apt.scheduled_at)
-                return (
-                  <div key={apt.id} className="flex items-center justify-between p-4 bg-gray-800 rounded-lg">
-                    <div>
-                      <p className="font-medium">{treatment}</p>
-                      <p className="text-sm text-gray-400">
-                        {date.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })} at {date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </p>
+        <div className="grid grid-cols-2 gap-6">
+          {/* Appointments */}
+          <div className="bg-gray-900 rounded-xl border border-gray-800 p-6">
+            <h3 className="font-semibold text-lg mb-4">My Appointments</h3>
+            {appointments && appointments.length > 0 ? (
+              <div className="space-y-3">
+                {appointments.map((apt) => {
+                  const treatment = (apt.patient_treatments as any)?.treatments?.name ?? 'Unknown'
+                  const date = new Date(apt.scheduled_at)
+                  return (
+                    <div key={apt.id} className="flex items-center justify-between p-3 bg-gray-800 rounded-lg">
+                      <div>
+                        <p className="font-medium text-sm">{treatment}</p>
+                        <p className="text-xs text-gray-400">
+                          {date.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })} at {date.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}
+                        </p>
+                      </div>
+                      <span className={`text-xs px-2 py-1 rounded-full ${
+                        apt.status === 'completed' ? 'bg-green-900 text-green-300' :
+                        apt.status === 'scheduled' ? 'bg-blue-900 text-blue-300' :
+                        apt.status === 'cancelled' ? 'bg-red-900 text-red-300' :
+                        'bg-yellow-900 text-yellow-300'
+                      }`}>
+                        {apt.status}
+                      </span>
                     </div>
-                    <span className={`text-xs px-2 py-1 rounded-full ${
-                      apt.status === 'completed' ? 'bg-green-900 text-green-300' :
-                      apt.status === 'scheduled' ? 'bg-blue-900 text-blue-300' :
-                      'bg-yellow-900 text-yellow-300'
-                    }`}>
-                      {apt.status}
-                    </span>
-                  </div>
-                )
-              })}
-            </div>
-          ) : (
-            <p className="text-gray-500 text-sm">No appointments found.</p>
-          )}
+                  )
+                })}
+              </div>
+            ) : (
+              <p className="text-gray-500 text-sm">No appointments found.</p>
+            )}
+          </div>
+
+          {/* Payment History */}
+          <div className="bg-gray-900 rounded-xl border border-gray-800 p-6">
+            <h3 className="font-semibold text-lg mb-4">Payment History</h3>
+            {payments && payments.length > 0 ? (
+              <div className="space-y-3">
+                {payments.map((p) => {
+                  const treatment = (p.appointments as any)?.patient_treatments?.treatments?.name ?? 'General'
+                  const date = new Date(p.created_at)
+                  return (
+                    <div key={p.id} className="flex items-center justify-between p-3 bg-gray-800 rounded-lg">
+                      <div>
+                        <p className="font-medium text-sm">₹{Number(p.amount).toLocaleString('en-IN')}</p>
+                        <p className="text-xs text-gray-400 capitalize">{treatment} — {p.method}</p>
+                        <p className="text-xs text-gray-500">
+                          {date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                        </p>
+                      </div>
+                      <span className={`text-xs px-2 py-1 rounded-full ${
+                        p.status === 'paid' ? 'bg-green-900 text-green-300' : 'bg-yellow-900 text-yellow-300'
+                      }`}>
+                        {p.status}
+                      </span>
+                    </div>
+                  )
+                })}
+              </div>
+            ) : (
+              <p className="text-gray-500 text-sm">No payments found.</p>
+            )}
+          </div>
         </div>
       </div>
     </div>
