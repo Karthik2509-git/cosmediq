@@ -1,8 +1,28 @@
+import { auth } from '@clerk/nextjs/server'
 import { supabase } from '@/lib/supabase'
+import { redirect } from 'next/navigation'
 import DoctorSidebar from '../components/Sidebar'
 import MarkCompleteButton from './MarkCompleteButton'
 
 export default async function DoctorAppointments() {
+  const { userId } = await auth()
+  if (!userId) redirect('/login')
+
+  // Get doctor record
+  const { data: userRecord } = await supabase
+    .from('users')
+    .select('id')
+    .eq('clerk_id', userId)
+    .single()
+
+  const { data: doctorRecord } = await supabase
+    .from('doctors')
+    .select('id')
+    .eq('user_id', userRecord?.id)
+    .single()
+
+  const doctorId = doctorRecord?.id
+
   const { data: appointments } = await supabase
     .from('appointments')
     .select(`
@@ -14,6 +34,7 @@ export default async function DoctorAppointments() {
       ),
       branches ( name )
     `)
+    .eq('doctor_id', doctorId)
     .order('scheduled_at')
 
   return (
@@ -37,6 +58,13 @@ export default async function DoctorAppointments() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-800">
+              {appointments?.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
+                    No appointments found
+                  </td>
+                </tr>
+              )}
               {appointments?.map((apt) => {
                 const name = (apt.patients as any)?.users?.full_name ?? 'Unknown'
                 const treatment = (apt.patient_treatments as any)?.treatments?.name ?? 'Unknown'

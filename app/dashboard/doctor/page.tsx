@@ -8,26 +8,28 @@ export default async function DoctorDashboard() {
   const { userId } = await auth()
   if (!userId) redirect('/login')
 
-  // Get doctor record using Clerk ID
+  // Get doctor record
   const { data: userRecord } = await supabase
     .from('users')
-    .select('id')
+    .select('id, full_name')
     .eq('clerk_id', userId)
     .single()
 
   const { data: doctorRecord } = await supabase
     .from('doctors')
-    .select('id')
+    .select('id, specialization')
     .eq('user_id', userRecord?.id)
     .single()
 
   const doctorId = doctorRecord?.id
+  const doctorName = userRecord?.full_name ?? 'Doctor'
 
   const today = new Date()
   today.setHours(0, 0, 0, 0)
   const tomorrow = new Date(today)
   tomorrow.setDate(tomorrow.getDate() + 1)
 
+  // Today's appointments for this doctor
   const { data: appointments } = await supabase
     .from('appointments')
     .select(`
@@ -43,35 +45,44 @@ export default async function DoctorDashboard() {
     .lte('scheduled_at', tomorrow.toISOString())
     .order('scheduled_at')
 
-  const { count: totalPatients } = await supabase
+  // Unique patients for this doctor
+  const { data: doctorAppointments } = await supabase
     .from('appointments')
-    .select('patient_id', { count: 'exact', head: true })
+    .select('patient_id')
     .eq('doctor_id', doctorId)
 
+  const uniquePatients = new Set(doctorAppointments?.map(a => a.patient_id) ?? []).size
+
+  // Active treatments
   const { count: activetreatments } = await supabase
     .from('patient_treatments')
     .select('*', { count: 'exact', head: true })
     .eq('status', 'active')
 
+  // Completed today for this doctor
   const { count: completedToday } = await supabase
     .from('appointments')
     .select('*', { count: 'exact', head: true })
     .eq('doctor_id', doctorId)
     .eq('status', 'completed')
     .gte('scheduled_at', today.toISOString())
+    .lte('scheduled_at', tomorrow.toISOString())
+
+  const hour = new Date().getHours()
+  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'
 
   return (
     <div className="min-h-screen bg-gray-950 text-white flex">
       <DoctorSidebar active="Dashboard" />
 
       <div className="flex-1 px-8 py-8 overflow-auto">
-        <h2 className="text-2xl font-bold mb-2">Good morning, Dr. Karthik</h2>
+        <h2 className="text-2xl font-bold mb-2">{greeting}, Dr. {doctorName}!</h2>
         <p className="text-gray-400 mb-8">Here's what's happening today</p>
 
         <div className="grid grid-cols-4 gap-4 mb-8">
           {[
             { label: "Today's appointments", value: appointments?.length ?? 0 },
-            { label: 'Active patients', value: totalPatients ?? 0 },
+            { label: 'My patients', value: uniquePatients },
             { label: 'Active treatments', value: activetreatments ?? 0 },
             { label: 'Completed today', value: completedToday ?? 0 },
           ].map((stat) => (

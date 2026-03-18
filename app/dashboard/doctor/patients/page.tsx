@@ -1,7 +1,36 @@
+import { auth } from '@clerk/nextjs/server'
 import { supabase } from '@/lib/supabase'
+import { redirect } from 'next/navigation'
 import DoctorSidebar from '../components/Sidebar'
 
 export default async function DoctorPatients() {
+  const { userId } = await auth()
+  if (!userId) redirect('/login')
+
+  // Get doctor record
+  const { data: userRecord } = await supabase
+    .from('users')
+    .select('id')
+    .eq('clerk_id', userId)
+    .single()
+
+  const { data: doctorRecord } = await supabase
+    .from('doctors')
+    .select('id')
+    .eq('user_id', userRecord?.id)
+    .single()
+
+  const doctorId = doctorRecord?.id
+
+  // Get unique patient IDs from appointments for this doctor
+  const { data: doctorAppointments } = await supabase
+    .from('appointments')
+    .select('patient_id')
+    .eq('doctor_id', doctorId)
+
+  const patientIds = [...new Set(doctorAppointments?.map(a => a.patient_id) ?? [])]
+
+  // Get patient details
   const { data: patients } = await supabase
     .from('patients')
     .select(`
@@ -17,6 +46,7 @@ export default async function DoctorPatients() {
         treatments ( name, category )
       )
     `)
+    .in('id', patientIds.length > 0 ? patientIds : ['00000000-0000-0000-0000-000000000000'])
 
   return (
     <div className="min-h-screen bg-gray-950 text-white flex">
@@ -25,6 +55,12 @@ export default async function DoctorPatients() {
       <div className="flex-1 px-8 py-8 overflow-auto">
         <h2 className="text-2xl font-bold mb-2">My Patients</h2>
         <p className="text-gray-400 mb-8">{patients?.length ?? 0} patients under your care</p>
+
+        {patients?.length === 0 && (
+          <div className="bg-gray-900 rounded-xl border border-gray-800 p-12 text-center">
+            <p className="text-gray-500">No patients assigned yet</p>
+          </div>
+        )}
 
         <div className="space-y-4">
           {patients?.map((patient) => {
@@ -55,13 +91,17 @@ export default async function DoctorPatients() {
                       </div>
                     </div>
                   </div>
-                  <span className="text-xs text-gray-500">{treatments.length} active treatment{treatments.length !== 1 ? 's' : ''}</span>
+                  <span className="text-xs text-gray-500">
+                    {treatments.length} active treatment{treatments.length !== 1 ? 's' : ''}
+                  </span>
                 </div>
 
                 {treatments.length > 0 ? (
                   <div className="space-y-3">
                     {treatments.map((t: any) => {
-                      const progress = t.sittings_total > 0 ? Math.round((t.sittings_completed / t.sittings_total) * 100) : 0
+                      const progress = t.sittings_total > 0
+                        ? Math.round((t.sittings_completed / t.sittings_total) * 100)
+                        : 0
                       return (
                         <div key={t.id} className="bg-gray-800 rounded-lg p-4">
                           <div className="flex justify-between items-center mb-2">
