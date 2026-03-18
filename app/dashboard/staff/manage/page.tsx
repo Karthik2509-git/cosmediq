@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 import StaffSidebar from '../components/Sidebar'
 
 export default function ManagePage() {
-  const [activeTab, setActiveTab] = useState<'patients' | 'appointments' | 'branches' | 'doctors' | 'assign'>('patients')
+  const [activeTab, setActiveTab] = useState<'patients' | 'appointments' | 'branches' | 'doctors' | 'assign' | 'staff'>('patients')
 
   return (
     <div className="min-h-screen bg-gray-950 text-white flex">
@@ -13,8 +13,8 @@ export default function ManagePage() {
         <h2 className="text-2xl font-bold mb-2">Manage</h2>
         <p className="text-gray-400 mb-6">Add and manage clinic data</p>
 
-        <div className="flex gap-2 mb-8 border-b border-gray-800">
-          {(['patients', 'appointments', 'assign', 'branches', 'doctors'] as const).map((tab) => (
+        <div className="flex gap-2 mb-8 border-b border-gray-800 flex-wrap">
+          {(['patients', 'appointments', 'assign', 'branches', 'doctors', 'staff'] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -34,72 +34,114 @@ export default function ManagePage() {
         {activeTab === 'assign' && <AssignTreatmentTab />}
         {activeTab === 'branches' && <BranchesTab />}
         {activeTab === 'doctors' && <DoctorsTab />}
+        {activeTab === 'staff' && <StaffTab />}
       </div>
     </div>
   )
 }
 
-function AppointmentsTab() {
-  const [patients, setPatients] = useState<any[]>([])
-  const [fetching, setFetching] = useState(true)
-  const [form, setForm] = useState({ patient_id: '', scheduled_at: '', notes: '' })
+function DoctorsTab() {
+  const [form, setForm] = useState({ full_name: '', email: '', phone: '', specialization: '', qualification: '' })
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
-
-  useEffect(() => {
-    async function fetchData() {
-      const res = await fetch('/api/staff/get-patients')
-      const data = await res.json()
-      setPatients(data.patients ?? [])
-      setFetching(false)
-    }
-    fetchData()
-  }, [])
 
   async function handleSubmit() {
     setLoading(true)
     setMessage('')
-    const res = await fetch('/api/staff/add-appointment', {
+    const res = await fetch('/api/admin/invite-user', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(form),
+      body: JSON.stringify({ ...form, role: 'doctor' }),
     })
     const data = await res.json()
-    setMessage(data.success ? '✅ Appointment scheduled!' : '❌ ' + data.error)
-    if (data.success) setForm({ patient_id: '', scheduled_at: '', notes: '' })
+    setMessage(data.success ? '✅ Doctor invited! They will receive an email to set up their login.' : '❌ ' + data.error)
+    if (data.success) setForm({ full_name: '', email: '', phone: '', specialization: '', qualification: '' })
     setLoading(false)
   }
 
-  if (fetching) return <p className="text-gray-400 text-sm">Loading...</p>
-
   return (
     <div className="max-w-lg">
-      <h3 className="font-semibold text-lg mb-6">Schedule Appointment</h3>
+      <h3 className="font-semibold text-lg mb-2">Invite New Doctor</h3>
+      <p className="text-gray-400 text-sm mb-6">Doctor will receive an email invite to set up their login.</p>
       <div className="space-y-4">
         <div>
-          <label className="text-sm text-gray-400 mb-1 block">Patient</label>
-          <select value={form.patient_id} onChange={e => setForm({...form, patient_id: e.target.value})}
-            className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500">
-            <option value="">Select patient</option>
-            {patients.map(p => (
-              <option key={p.id} value={p.id}>{(p.users as any)?.full_name} — {(p.users as any)?.email}</option>
-            ))}
-          </select>
+          <label className="text-sm text-gray-400 mb-1 block">Full Name</label>
+          <input value={form.full_name} onChange={e => setForm({...form, full_name: e.target.value})}
+            className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500" placeholder="Enter doctor's full name" />
         </div>
         <div>
-          <label className="text-sm text-gray-400 mb-1 block">Date & Time</label>
-          <input type="datetime-local" value={form.scheduled_at} onChange={e => setForm({...form, scheduled_at: e.target.value})}
-            className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500" />
+          <label className="text-sm text-gray-400 mb-1 block">Email</label>
+          <input value={form.email} onChange={e => setForm({...form, email: e.target.value})}
+            className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500" placeholder="Enter email" />
         </div>
         <div>
-          <label className="text-sm text-gray-400 mb-1 block">Notes (optional)</label>
-          <textarea value={form.notes} onChange={e => setForm({...form, notes: e.target.value})}
-            className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500" rows={3} placeholder="Any notes..." />
+          <label className="text-sm text-gray-400 mb-1 block">Phone</label>
+          <input value={form.phone} onChange={e => setForm({...form, phone: e.target.value})}
+            className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500" placeholder="Enter phone number" />
+        </div>
+        <div>
+          <label className="text-sm text-gray-400 mb-1 block">Specialization</label>
+          <input value={form.specialization} onChange={e => setForm({...form, specialization: e.target.value})}
+            className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500" placeholder="e.g. Hair & Skin" />
+        </div>
+        <div>
+          <label className="text-sm text-gray-400 mb-1 block">Qualification</label>
+          <input value={form.qualification} onChange={e => setForm({...form, qualification: e.target.value})}
+            className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500" placeholder="e.g. MBBS, MD Dermatology" />
         </div>
         {message && <p className="text-sm">{message}</p>}
         <button onClick={handleSubmit} disabled={loading}
           className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white rounded-lg px-4 py-2.5 text-sm font-medium transition-colors">
-          {loading ? 'Scheduling...' : 'Schedule Appointment'}
+          {loading ? 'Sending invite...' : 'Send Invite to Doctor'}
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function StaffTab() {
+  const [form, setForm] = useState({ full_name: '', email: '', phone: '' })
+  const [loading, setLoading] = useState(false)
+  const [message, setMessage] = useState('')
+
+  async function handleSubmit() {
+    setLoading(true)
+    setMessage('')
+    const res = await fetch('/api/admin/invite-user', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...form, role: 'staff' }),
+    })
+    const data = await res.json()
+    setMessage(data.success ? '✅ Staff member invited! They will receive an email to set up their login.' : '❌ ' + data.error)
+    if (data.success) setForm({ full_name: '', email: '', phone: '' })
+    setLoading(false)
+  }
+
+  return (
+    <div className="max-w-lg">
+      <h3 className="font-semibold text-lg mb-2">Invite New Staff Member</h3>
+      <p className="text-gray-400 text-sm mb-6">Staff member will receive an email invite to set up their login.</p>
+      <div className="space-y-4">
+        <div>
+          <label className="text-sm text-gray-400 mb-1 block">Full Name</label>
+          <input value={form.full_name} onChange={e => setForm({...form, full_name: e.target.value})}
+            className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500" placeholder="Enter full name" />
+        </div>
+        <div>
+          <label className="text-sm text-gray-400 mb-1 block">Email</label>
+          <input value={form.email} onChange={e => setForm({...form, email: e.target.value})}
+            className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500" placeholder="Enter email" />
+        </div>
+        <div>
+          <label className="text-sm text-gray-400 mb-1 block">Phone</label>
+          <input value={form.phone} onChange={e => setForm({...form, phone: e.target.value})}
+            className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500" placeholder="Enter phone number" />
+        </div>
+        {message && <p className="text-sm">{message}</p>}
+        <button onClick={handleSubmit} disabled={loading}
+          className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white rounded-lg px-4 py-2.5 text-sm font-medium transition-colors">
+          {loading ? 'Sending invite...' : 'Send Invite to Staff'}
         </button>
       </div>
     </div>
@@ -192,20 +234,21 @@ function PatientsTab() {
   async function handleSubmit() {
     setLoading(true)
     setMessage('')
-    const res = await fetch('/api/staff/add-patient', {
+    const res = await fetch('/api/admin/invite-user', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(form),
+      body: JSON.stringify({ ...form, role: 'patient' }),
     })
     const data = await res.json()
-    setMessage(data.success ? '✅ Patient added successfully!' : '❌ ' + data.error)
+    setMessage(data.success ? '✅ Patient invited! They will receive an email to set up their login.' : '❌ ' + data.error)
     if (data.success) setForm({ full_name: '', email: '', phone: '', date_of_birth: '', blood_group: '' })
     setLoading(false)
   }
 
   return (
     <div className="max-w-lg">
-      <h3 className="font-semibold text-lg mb-6">Add New Patient</h3>
+      <h3 className="font-semibold text-lg mb-2">Invite New Patient</h3>
+      <p className="text-gray-400 text-sm mb-6">Patient will receive an email invite to set up their login.</p>
       <div className="space-y-4">
         <div>
           <label className="text-sm text-gray-400 mb-1 block">Full Name</label>
@@ -240,7 +283,74 @@ function PatientsTab() {
         {message && <p className="text-sm">{message}</p>}
         <button onClick={handleSubmit} disabled={loading}
           className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white rounded-lg px-4 py-2.5 text-sm font-medium transition-colors">
-          {loading ? 'Adding...' : 'Add Patient'}
+          {loading ? 'Sending invite...' : 'Send Invite to Patient'}
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function AppointmentsTab() {
+  const [patients, setPatients] = useState<any[]>([])
+  const [fetching, setFetching] = useState(true)
+  const [form, setForm] = useState({ patient_id: '', scheduled_at: '', notes: '' })
+  const [loading, setLoading] = useState(false)
+  const [message, setMessage] = useState('')
+
+  useEffect(() => {
+    async function fetchData() {
+      const res = await fetch('/api/staff/get-patients')
+      const data = await res.json()
+      setPatients(data.patients ?? [])
+      setFetching(false)
+    }
+    fetchData()
+  }, [])
+
+  async function handleSubmit() {
+    setLoading(true)
+    setMessage('')
+    const res = await fetch('/api/staff/add-appointment', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(form),
+    })
+    const data = await res.json()
+    setMessage(data.success ? '✅ Appointment scheduled!' : '❌ ' + data.error)
+    if (data.success) setForm({ patient_id: '', scheduled_at: '', notes: '' })
+    setLoading(false)
+  }
+
+  if (fetching) return <p className="text-gray-400 text-sm">Loading...</p>
+
+  return (
+    <div className="max-w-lg">
+      <h3 className="font-semibold text-lg mb-6">Schedule Appointment</h3>
+      <div className="space-y-4">
+        <div>
+          <label className="text-sm text-gray-400 mb-1 block">Patient</label>
+          <select value={form.patient_id} onChange={e => setForm({...form, patient_id: e.target.value})}
+            className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500">
+            <option value="">Select patient</option>
+            {patients.map(p => (
+              <option key={p.id} value={p.id}>{(p.users as any)?.full_name} — {(p.users as any)?.email}</option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="text-sm text-gray-400 mb-1 block">Date & Time</label>
+          <input type="datetime-local" value={form.scheduled_at} onChange={e => setForm({...form, scheduled_at: e.target.value})}
+            className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500" />
+        </div>
+        <div>
+          <label className="text-sm text-gray-400 mb-1 block">Notes (optional)</label>
+          <textarea value={form.notes} onChange={e => setForm({...form, notes: e.target.value})}
+            className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500" rows={3} placeholder="Any notes..." />
+        </div>
+        {message && <p className="text-sm">{message}</p>}
+        <button onClick={handleSubmit} disabled={loading}
+          className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white rounded-lg px-4 py-2.5 text-sm font-medium transition-colors">
+          {loading ? 'Scheduling...' : 'Schedule Appointment'}
         </button>
       </div>
     </div>
@@ -289,64 +399,6 @@ function BranchesTab() {
         <button onClick={handleSubmit} disabled={loading}
           className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white rounded-lg px-4 py-2.5 text-sm font-medium transition-colors">
           {loading ? 'Adding...' : 'Add Branch'}
-        </button>
-      </div>
-    </div>
-  )
-}
-
-function DoctorsTab() {
-  const [form, setForm] = useState({ full_name: '', email: '', phone: '', specialization: '', qualification: '' })
-  const [loading, setLoading] = useState(false)
-  const [message, setMessage] = useState('')
-
-  async function handleSubmit() {
-    setLoading(true)
-    setMessage('')
-    const res = await fetch('/api/staff/add-doctor', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(form),
-    })
-    const data = await res.json()
-    setMessage(data.success ? '✅ Doctor added!' : '❌ ' + data.error)
-    if (data.success) setForm({ full_name: '', email: '', phone: '', specialization: '', qualification: '' })
-    setLoading(false)
-  }
-
-  return (
-    <div className="max-w-lg">
-      <h3 className="font-semibold text-lg mb-6">Add New Doctor</h3>
-      <div className="space-y-4">
-        <div>
-          <label className="text-sm text-gray-400 mb-1 block">Full Name</label>
-          <input value={form.full_name} onChange={e => setForm({...form, full_name: e.target.value})}
-            className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500" placeholder="Enter doctor's full name" />
-        </div>
-        <div>
-          <label className="text-sm text-gray-400 mb-1 block">Email</label>
-          <input value={form.email} onChange={e => setForm({...form, email: e.target.value})}
-            className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500" placeholder="Enter email" />
-        </div>
-        <div>
-          <label className="text-sm text-gray-400 mb-1 block">Phone</label>
-          <input value={form.phone} onChange={e => setForm({...form, phone: e.target.value})}
-            className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500" placeholder="Enter phone number" />
-        </div>
-        <div>
-          <label className="text-sm text-gray-400 mb-1 block">Specialization</label>
-          <input value={form.specialization} onChange={e => setForm({...form, specialization: e.target.value})}
-            className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500" placeholder="e.g. Hair & Skin" />
-        </div>
-        <div>
-          <label className="text-sm text-gray-400 mb-1 block">Qualification</label>
-          <input value={form.qualification} onChange={e => setForm({...form, qualification: e.target.value})}
-            className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500" placeholder="e.g. MBBS, MD Dermatology" />
-        </div>
-        {message && <p className="text-sm">{message}</p>}
-        <button onClick={handleSubmit} disabled={loading}
-          className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white rounded-lg px-4 py-2.5 text-sm font-medium transition-colors">
-          {loading ? 'Adding...' : 'Add Doctor'}
         </button>
       </div>
     </div>
