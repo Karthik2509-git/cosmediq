@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 interface Patient {
   id: string
@@ -8,9 +8,17 @@ interface Patient {
 
 export default function RecordPaymentButton({ patients }: { patients: Patient[] }) {
   const [open, setOpen] = useState(false)
-  const [form, setForm] = useState({ patient_id: '', amount: '', method: 'cash', status: 'paid' })
+  const [appointments, setAppointments] = useState<any[]>([])
+  const [form, setForm] = useState({ patient_id: '', appointment_id: '', amount: '', method: 'cash', status: 'paid' })
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
+
+  async function fetchAppointments(patient_id: string) {
+    if (!patient_id) { setAppointments([]); return }
+    const res = await fetch(`/api/staff/get-patient-appointments?patient_id=${patient_id}`)
+    const data = await res.json()
+    setAppointments(data.appointments ?? [])
+  }
 
   async function handleSubmit() {
     setLoading(true)
@@ -23,7 +31,8 @@ export default function RecordPaymentButton({ patients }: { patients: Patient[] 
     const data = await res.json()
     if (data.success) {
       setMessage('✅ Payment recorded!')
-      setForm({ patient_id: '', amount: '', method: 'cash', status: 'paid' })
+      setForm({ patient_id: '', appointment_id: '', amount: '', method: 'cash', status: 'paid' })
+      setAppointments([])
       setTimeout(() => { setOpen(false); setMessage(''); window.location.reload() }, 1500)
     } else {
       setMessage('❌ ' + data.error)
@@ -45,7 +54,10 @@ export default function RecordPaymentButton({ patients }: { patients: Patient[] 
             <div className="space-y-4">
               <div>
                 <label className="text-sm text-gray-400 mb-1 block">Patient</label>
-                <select value={form.patient_id} onChange={e => setForm({...form, patient_id: e.target.value})}
+                <select value={form.patient_id} onChange={e => {
+                  setForm({...form, patient_id: e.target.value, appointment_id: ''})
+                  fetchAppointments(e.target.value)
+                }}
                   className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500">
                   <option value="">Select patient</option>
                   {patients.map(p => (
@@ -53,6 +65,26 @@ export default function RecordPaymentButton({ patients }: { patients: Patient[] 
                   ))}
                 </select>
               </div>
+
+              {appointments.length > 0 && (
+                <div>
+                  <label className="text-sm text-gray-400 mb-1 block">Link to Appointment (optional)</label>
+                  <select value={form.appointment_id} onChange={e => setForm({...form, appointment_id: e.target.value})}
+                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500">
+                    <option value="">Select appointment</option>
+                    {appointments.map((a: any) => {
+                      const date = new Date(a.scheduled_at)
+                      const treatment = a.patient_treatments?.treatments?.name ?? 'Unknown'
+                      return (
+                        <option key={a.id} value={a.id}>
+                          {treatment} — {date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })} {date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </option>
+                      )
+                    })}
+                  </select>
+                </div>
+              )}
+
               <div>
                 <label className="text-sm text-gray-400 mb-1 block">Amount (₹)</label>
                 <input type="number" value={form.amount} onChange={e => setForm({...form, amount: e.target.value})}
@@ -78,7 +110,7 @@ export default function RecordPaymentButton({ patients }: { patients: Patient[] 
               </div>
               {message && <p className="text-sm">{message}</p>}
               <div className="flex gap-3 mt-2">
-                <button onClick={() => setOpen(false)}
+                <button onClick={() => { setOpen(false); setAppointments([]) }}
                   className="flex-1 border border-gray-700 text-gray-400 hover:text-white rounded-lg px-4 py-2.5 text-sm transition-colors">
                   Cancel
                 </button>
