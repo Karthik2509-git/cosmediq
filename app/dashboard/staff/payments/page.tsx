@@ -1,6 +1,7 @@
 import { supabase } from '@/lib/supabase'
 import StaffSidebar from '../components/Sidebar'
 import RecordPaymentButton from './RecordPaymentButton'
+import PaymentActions from './PaymentActions'
 
 export default async function StaffPayments() {
   const { data: payments } = await supabase
@@ -60,12 +61,13 @@ export default async function StaffPayments() {
                   <th className="text-left px-6 py-4 font-medium">Method</th>
                   <th className="text-left px-6 py-4 font-medium">Date</th>
                   <th className="text-left px-6 py-4 font-medium">Status</th>
+                  <th className="text-left px-6 py-4 font-medium">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-800">
                 {payments.map((payment) => {
                   const name = (payment.patients as any)?.users?.full_name ?? 'Unknown'
-                  const treatment = (payment.appointments as any)?.patient_treatments?.treatments?.name ?? 'Unknown'
+                  const treatment = (payment.appointments as any)?.patient_treatments?.treatments?.name ?? '—'
                   const date = new Date(payment.created_at)
                   return (
                     <tr key={payment.id} className="hover:bg-gray-800 transition-colors">
@@ -84,6 +86,12 @@ export default async function StaffPayments() {
                         }`}>
                           {payment.status}
                         </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <PaymentActions
+                          paymentId={payment.id}
+                          currentStatus={payment.status}
+                        />
                       </td>
                     </tr>
                   )
