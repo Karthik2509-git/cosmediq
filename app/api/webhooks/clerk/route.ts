@@ -36,22 +36,63 @@ export async function POST(req: Request) {
   }
 
   if (evt.type === 'user.created') {
-    const { id, email_addresses, first_name, last_name } = evt.data
+    const { id, email_addresses, first_name, last_name, public_metadata } = evt.data
     const email = email_addresses[0]?.email_address
     const full_name = [first_name, last_name].filter(Boolean).join(' ') || email
+    const role = (public_metadata as any)?.role ?? 'patient'
 
-    const { error } = await supabase
+    // Check if user already exists (invited via staff)
+    const { data: existingUser } = await supabase
       .from('users')
-      .insert({
-        clerk_id: id,
-        email,
-        full_name,
-        role: 'patient',
-      })
+      .select('id')
+      .eq('email', email)
+      .single()
 
-    if (error) {
-      console.error('Supabase insert error:', error)
-      return new Response('Database error', { status: 500 })
+    if (existingUser) {
+      // Update clerk_id for existing user
+      await supabase
+        .from('users')
+        .update({ clerk_id: id })
+        .eq('email', email)
+    } else {
+      // Create new user record
+      const { data: newUser, error: userError } = await supabase
+        .from('users')
+        .insert({
+          clerk_id: id,
+          email,
+          full_name,
+          role,
+        })
+        .select()
+        .single()
+
+      if (userError) {
+        console.error('Supabase user insert error:', userError)
+        return new Response('Database error', { status: 500 })
+      }
+
+      // If patient, create patient record too
+      if (role === 'patient' && newUser) {
+        const { error: patientError } = await supabase
+          .from('patients')
+          .insert({ user_id: newUser.id })
+
+        if (patientError) {
+          console.error('Supabase patient insert error:', patientError)
+        }
+      }
+
+      // If doctor, create doctor record too
+      if (role === 'doctor' && newUser) {
+        const { error: doctorError } = await supabase
+          .from('doctors')
+          .insert({ user_id: newUser.id })
+
+        if (doctorError) {
+          console.error('Supabase doctor insert error:', doctorError)
+        }
+      }
     }
   }
 
