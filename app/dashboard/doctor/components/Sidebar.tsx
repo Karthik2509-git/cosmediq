@@ -1,46 +1,66 @@
-'use client'
-import Link from 'next/link'
-import Image from 'next/image'
-import { SignOutButton } from '@clerk/nextjs'
-import { LayoutDashboard, Users, Calendar, Stethoscope, LogOut } from 'lucide-react'
+import { supabase } from '@/lib/supabase'
+import { NextResponse } from 'next/server'
 
-const navItems = [
-  { label: 'Dashboard', href: '/dashboard/doctor', icon: LayoutDashboard },
-  { label: 'My Patients', href: '/dashboard/doctor/patients', icon: Users },
-  { label: 'Appointments', href: '/dashboard/doctor/appointments', icon: Calendar },
-  { label: 'Treatments', href: '/dashboard/doctor/treatments', icon: Stethoscope },
-]
+export async function POST(req: Request) {
+  try {
+    const { patient_id, treatment_id, doctor_id, start_date } = await req.json()
 
-export default function DoctorSidebar({ active }: { active: string }) {
-  return (
-    <div className="w-64 border-r border-gray-800 flex flex-col min-h-screen">
-      <div className="px-6 py-5 border-b border-gray-800">
-        <Image src="/logo.png" alt="Cosmediq" width={120} height={40} className="object-contain" />
-        <p className="text-xs text-gray-500 mt-1">Doctor Portal</p>
-      </div>
-      <nav className="flex-1 px-3 py-4 space-y-1">
-        {navItems.map((item) => (
-          <Link key={item.label} href={item.href}
-            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
-              active === item.label ? 'bg-gray-800 text-white font-medium' : 'text-gray-400 hover:bg-gray-800 hover:text-white'
-            }`}>
-            <item.icon size={17} />
-            {item.label}
-          </Link>
-        ))}
-      </nav>
-      <div className="px-3 py-4 border-t border-gray-800">
-        <div className="px-3 py-2 mb-2">
-          <p className="text-sm font-medium">Dr. Karthik</p>
-          <p className="text-xs text-gray-500">Hair & Skin</p>
-        </div>
-        <SignOutButton>
-          <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-400 hover:bg-gray-800 hover:text-white transition-colors">
-            <LogOut size={17} />
-            Sign out
-          </button>
-        </SignOutButton>
-      </div>
-    </div>
-  )
+    if (!patient_id || !treatment_id || !start_date) {
+      return NextResponse.json({ error: 'All fields are required' }, { status: 400 })
+    }
+
+    // Get treatment details for sittings total
+    const { data: treatment, error: treatmentError } = await supabase
+      .from('treatments')
+      .select('total_sittings')
+      .eq('id', treatment_id)
+      .single()
+
+    if (treatmentError || !treatment) {
+      return NextResponse.json({ error: 'Treatment not found' }, { status: 404 })
+    }
+
+    // Check if already assigned
+    const { data: existing } = await supabase
+      .from('patient_treatments')
+      .select('id')
+      .eq('patient_id', patient_id)
+      .eq('treatment_id', treatment_id)
+      .eq('status', 'active')
+      .single()
+
+    if (existing) {
+      return NextResponse.json({ error: 'This treatment is already active for this patient' }, { status: 400 })
+    }
+
+    // Use selected doctor or fall back to first doctor
+    let finalDoctorId = doctor_id
+    if (!finalDoctorId) {
+      const { data: doctor } = await supabase
+        .from('doctors')
+        .select('id')
+        .single()
+      finalDoctorId = doctor?.id
+    }
+
+    const { error } = await supabase
+      .from('patient_treatments')
+      .insert({
+        patient_id,
+        treatment_id,
+        doctor_id: finalDoctorId,
+        start_date,
+        sittings_completed: 0,
+        sittings_total: treatment.total_sittings,
+        status: 'active',
+      })
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+
+    return NextResponse.json({ success: true })
+  } catch (err) {
+    return NextResponse.json({ error: 'Something went wrong' }, { status: 500 })
+  }
 }

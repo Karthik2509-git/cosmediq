@@ -149,82 +149,96 @@ function StaffTab() {
 }
 
 function AssignTreatmentTab() {
-  const [patients, setPatients] = useState<any[]>([])
-  const [treatments, setTreatments] = useState<any[]>([])
-  const [form, setForm] = useState({ patient_id: '', treatment_id: '', start_date: '' })
-  const [loading, setLoading] = useState(false)
-  const [fetching, setFetching] = useState(true)
-  const [message, setMessage] = useState('')
-
-  useEffect(() => {
-    async function fetchData() {
-      const [pRes, tRes] = await Promise.all([
-        fetch('/api/staff/get-patients'),
-        fetch('/api/staff/get-treatments'),
-      ])
-      const pData = await pRes.json()
-      const tData = await tRes.json()
-      setPatients(pData.patients ?? [])
-      setTreatments(tData.treatments ?? [])
-      setFetching(false)
+    const [patients, setPatients] = useState<any[]>([])
+    const [treatments, setTreatments] = useState<any[]>([])
+    const [doctors, setDoctors] = useState<any[]>([])
+    const [form, setForm] = useState({ patient_id: '', treatment_id: '', doctor_id: '', start_date: '' })
+    const [loading, setLoading] = useState(false)
+    const [fetching, setFetching] = useState(true)
+    const [message, setMessage] = useState('')
+  
+    useEffect(() => {
+      async function fetchData() {
+        const [pRes, tRes, dRes] = await Promise.all([
+          fetch('/api/staff/get-patients'),
+          fetch('/api/staff/get-treatments'),
+          fetch('/api/staff/get-doctors'),
+        ])
+        const pData = await pRes.json()
+        const tData = await tRes.json()
+        const dData = await dRes.json()
+        setPatients(pData.patients ?? [])
+        setTreatments(tData.treatments ?? [])
+        setDoctors(dData.doctors ?? [])
+        setFetching(false)
+      }
+      fetchData()
+    }, [])
+  
+    async function handleSubmit() {
+      setLoading(true)
+      setMessage('')
+      const res = await fetch('/api/staff/assign-treatment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      })
+      const data = await res.json()
+      setMessage(data.success ? '✅ Treatment assigned!' : '❌ ' + data.error)
+      if (data.success) setForm({ patient_id: '', treatment_id: '', doctor_id: '', start_date: '' })
+      setLoading(false)
     }
-    fetchData()
-  }, [])
-
-  async function handleSubmit() {
-    setLoading(true)
-    setMessage('')
-    const res = await fetch('/api/staff/assign-treatment', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(form),
-    })
-    const data = await res.json()
-    setMessage(data.success ? '✅ Treatment assigned!' : '❌ ' + data.error)
-    if (data.success) setForm({ patient_id: '', treatment_id: '', start_date: '' })
-    setLoading(false)
-  }
-
-  if (fetching) return <p className="text-gray-400 text-sm">Loading...</p>
-
-  return (
-    <div className="max-w-lg">
-      <h3 className="font-semibold text-lg mb-6">Assign Treatment to Patient</h3>
-      <div className="space-y-4">
-        <div>
-          <label className="text-sm text-gray-400 mb-1 block">Patient</label>
-          <select value={form.patient_id} onChange={e => setForm({...form, patient_id: e.target.value})}
-            className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500">
-            <option value="">Select patient</option>
-            {patients.map(p => (
-              <option key={p.id} value={p.id}>{(p.users as any)?.full_name} — {(p.users as any)?.email}</option>
-            ))}
-          </select>
+  
+    if (fetching) return <p className="text-gray-400 text-sm">Loading...</p>
+  
+    return (
+      <div className="max-w-lg">
+        <h3 className="font-semibold text-lg mb-6">Assign Treatment to Patient</h3>
+        <div className="space-y-4">
+          <div>
+            <label className="text-sm text-gray-400 mb-1 block">Patient</label>
+            <select value={form.patient_id} onChange={e => setForm({...form, patient_id: e.target.value})}
+              className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500">
+              <option value="">Select patient</option>
+              {patients.map(p => (
+                <option key={p.id} value={p.id}>{(p.users as any)?.full_name} — {(p.users as any)?.email}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="text-sm text-gray-400 mb-1 block">Treatment</label>
+            <select value={form.treatment_id} onChange={e => setForm({...form, treatment_id: e.target.value})}
+              className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500">
+              <option value="">Select treatment</option>
+              {treatments.map(t => (
+                <option key={t.id} value={t.id}>{t.name} — ₹{Number(t.price_per_sitting).toLocaleString('en-IN')}/sitting</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="text-sm text-gray-400 mb-1 block">Doctor</label>
+            <select value={form.doctor_id} onChange={e => setForm({...form, doctor_id: e.target.value})}
+              className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500">
+              <option value="">Select doctor</option>
+              {doctors.map(d => (
+                <option key={d.id} value={d.id}>{(d.users as any)?.full_name} — {d.specialization}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="text-sm text-gray-400 mb-1 block">Start Date</label>
+            <input type="date" value={form.start_date} onChange={e => setForm({...form, start_date: e.target.value})}
+              className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500" />
+          </div>
+          {message && <p className="text-sm">{message}</p>}
+          <button onClick={handleSubmit} disabled={loading}
+            className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white rounded-lg px-4 py-2.5 text-sm font-medium transition-colors">
+            {loading ? 'Assigning...' : 'Assign Treatment'}
+          </button>
         </div>
-        <div>
-          <label className="text-sm text-gray-400 mb-1 block">Treatment</label>
-          <select value={form.treatment_id} onChange={e => setForm({...form, treatment_id: e.target.value})}
-            className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500">
-            <option value="">Select treatment</option>
-            {treatments.map(t => (
-              <option key={t.id} value={t.id}>{t.name} — ₹{Number(t.price_per_sitting).toLocaleString('en-IN')}/sitting</option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label className="text-sm text-gray-400 mb-1 block">Start Date</label>
-          <input type="date" value={form.start_date} onChange={e => setForm({...form, start_date: e.target.value})}
-            className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500" />
-        </div>
-        {message && <p className="text-sm">{message}</p>}
-        <button onClick={handleSubmit} disabled={loading}
-          className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white rounded-lg px-4 py-2.5 text-sm font-medium transition-colors">
-          {loading ? 'Assigning...' : 'Assign Treatment'}
-        </button>
       </div>
-    </div>
-  )
-}
+    )
+  }
 
 function PatientsTab() {
   const [form, setForm] = useState({ full_name: '', email: '', phone: '', date_of_birth: '', blood_group: '' })
