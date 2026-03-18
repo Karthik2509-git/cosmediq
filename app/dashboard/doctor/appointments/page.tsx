@@ -2,13 +2,12 @@ import { auth } from '@clerk/nextjs/server'
 import { supabase } from '@/lib/supabase'
 import { redirect } from 'next/navigation'
 import DoctorSidebar from '../components/Sidebar'
-import MarkCompleteButton from './MarkCompleteButton'
+import AppointmentActions from './AppointmentActions'
 
 export default async function DoctorAppointments() {
   const { userId } = await auth()
   if (!userId) redirect('/login')
 
-  // Get doctor record
   const { data: userRecord } = await supabase
     .from('users')
     .select('id')
@@ -54,7 +53,7 @@ export default async function DoctorAppointments() {
                 <th className="text-left px-6 py-4 font-medium">Progress</th>
                 <th className="text-left px-6 py-4 font-medium">Branch</th>
                 <th className="text-left px-6 py-4 font-medium">Date & Time</th>
-                <th className="text-left px-6 py-4 font-medium">Action</th>
+                <th className="text-left px-6 py-4 font-medium">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-800">
@@ -99,7 +98,7 @@ export default async function DoctorAppointments() {
                       {date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })} {date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </td>
                     <td className="px-6 py-4">
-                      <MarkCompleteButton
+                      <AppointmentActions
                         appointmentId={apt.id}
                         patientTreatmentId={ptId}
                         currentStatus={apt.status}
