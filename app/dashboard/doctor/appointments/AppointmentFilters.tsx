@@ -1,11 +1,14 @@
 'use client'
 import { useState } from 'react'
-import { Search } from 'lucide-react'
+import { Search, ChevronLeft, ChevronRight } from 'lucide-react'
 import AppointmentActions from './AppointmentActions'
+
+const PAGE_SIZE = 10
 
 export default function AppointmentFilters({ appointments }: { appointments: any[] }) {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
+  const [page, setPage] = useState(1)
 
   const filtered = appointments.filter(apt => {
     const name = (apt.patients as any)?.users?.full_name?.toLowerCase() ?? ''
@@ -16,20 +19,29 @@ export default function AppointmentFilters({ appointments }: { appointments: any
     return matchesSearch && matchesStatus
   })
 
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE)
+  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+
+  function handleSearch(val: string) {
+    setSearch(val)
+    setPage(1)
+  }
+
+  function handleStatus(val: string) {
+    setStatusFilter(val)
+    setPage(1)
+  }
+
   return (
     <div>
-      {/* Search and filter bar */}
       <div className="flex gap-3 mb-6">
         <div className="relative flex-1">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
-          <input
-            value={search}
-            onChange={e => setSearch(e.target.value)}
+          <input value={search} onChange={e => handleSearch(e.target.value)}
             placeholder="Search by patient or treatment..."
-            className="w-full bg-gray-900 border border-gray-800 rounded-lg pl-9 pr-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500"
-          />
+            className="w-full bg-gray-900 border border-gray-800 rounded-lg pl-9 pr-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500" />
         </div>
-        <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
+        <select value={statusFilter} onChange={e => handleStatus(e.target.value)}
           className="bg-gray-900 border border-gray-800 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500">
           <option value="all">All Status</option>
           <option value="scheduled">Scheduled</option>
@@ -52,14 +64,14 @@ export default function AppointmentFilters({ appointments }: { appointments: any
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-800">
-            {filtered.length === 0 && (
+            {paginated.length === 0 && (
               <tr>
                 <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
                   No appointments found
                 </td>
               </tr>
             )}
-            {filtered.map((apt) => {
+            {paginated.map((apt) => {
               const name = (apt.patients as any)?.users?.full_name ?? 'Unknown'
               const treatment = (apt.patient_treatments as any)?.treatments?.name ?? 'Unknown'
               const done = (apt.patient_treatments as any)?.sittings_completed ?? 0
@@ -90,7 +102,7 @@ export default function AppointmentFilters({ appointments }: { appointments: any
                   </td>
                   <td className="px-6 py-4 text-gray-400">{branch}</td>
                   <td className="px-6 py-4 text-gray-400">
-                  {date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })} {date.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}
+                    {date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })} {date.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}
                   </td>
                   <td className="px-6 py-4">
                     <AppointmentActions
@@ -104,6 +116,26 @@ export default function AppointmentFilters({ appointments }: { appointments: any
             })}
           </tbody>
         </table>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between px-6 py-4 border-t border-gray-800">
+            <p className="text-sm text-gray-500">
+              Showing {((page - 1) * PAGE_SIZE) + 1}–{Math.min(page * PAGE_SIZE, filtered.length)} of {filtered.length}
+            </p>
+            <div className="flex items-center gap-2">
+              <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
+                className="p-1.5 rounded-lg border border-gray-700 text-gray-400 hover:text-white disabled:opacity-40 transition-colors">
+                <ChevronLeft size={16} />
+              </button>
+              <span className="text-sm text-gray-400">Page {page} of {totalPages}</span>
+              <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}
+                className="p-1.5 rounded-lg border border-gray-700 text-gray-400 hover:text-white disabled:opacity-40 transition-colors">
+                <ChevronRight size={16} />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )

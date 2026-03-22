@@ -1,11 +1,14 @@
 'use client'
 import { useState } from 'react'
-import { Search } from 'lucide-react'
+import { Search, ChevronLeft, ChevronRight } from 'lucide-react'
+
+const PAGE_SIZE = 10
 
 export default function StaffDashboardClient({ appointments }: { appointments: any[] }) {
   const [search, setSearch] = useState('')
   const [dateFilter, setDateFilter] = useState('all')
   const [statusFilter, setStatusFilter] = useState('all')
+  const [page, setPage] = useState(1)
 
   const now = new Date()
   const todayStart = new Date(now); todayStart.setHours(0,0,0,0)
@@ -27,6 +30,13 @@ export default function StaffDashboardClient({ appointments }: { appointments: a
     return matchesSearch && matchesStatus && matchesDate
   })
 
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE)
+  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+
+  function handleSearch(val: string) { setSearch(val); setPage(1) }
+  function handleDate(val: string) { setDateFilter(val); setPage(1) }
+  function handleStatus(val: string) { setStatusFilter(val); setPage(1) }
+
   return (
     <div className="bg-gray-900 rounded-xl border border-gray-800 p-6">
       <div className="flex justify-between items-center mb-4">
@@ -34,22 +44,21 @@ export default function StaffDashboardClient({ appointments }: { appointments: a
         <span className="text-xs text-gray-500">{filtered.length} shown</span>
       </div>
 
-      {/* Filters */}
       <div className="flex gap-3 mb-6">
         <div className="relative flex-1">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
-          <input value={search} onChange={e => setSearch(e.target.value)}
+          <input value={search} onChange={e => handleSearch(e.target.value)}
             placeholder="Search patient or treatment..."
             className="w-full bg-gray-800 border border-gray-700 rounded-lg pl-9 pr-4 py-2 text-sm text-white focus:outline-none focus:border-blue-500" />
         </div>
-        <select value={dateFilter} onChange={e => setDateFilter(e.target.value)}
+        <select value={dateFilter} onChange={e => handleDate(e.target.value)}
           className="bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm text-white focus:outline-none focus:border-blue-500">
           <option value="all">All Dates</option>
           <option value="today">Today</option>
           <option value="week">This Week</option>
           <option value="month">This Month</option>
         </select>
-        <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
+        <select value={statusFilter} onChange={e => handleStatus(e.target.value)}
           className="bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm text-white focus:outline-none focus:border-blue-500">
           <option value="all">All Status</option>
           <option value="scheduled">Scheduled</option>
@@ -73,14 +82,12 @@ export default function StaffDashboardClient({ appointments }: { appointments: a
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-800">
-            {filtered.length === 0 && (
+            {paginated.length === 0 && (
               <tr>
-                <td colSpan={7} className="py-12 text-center text-gray-500">
-                  No appointments found
-                </td>
+                <td colSpan={7} className="py-12 text-center text-gray-500">No appointments found</td>
               </tr>
             )}
-            {filtered.map((apt) => {
+            {paginated.map((apt) => {
               const patient = (apt.patients as any)?.users?.full_name ?? 'Unknown'
               const doctor = (apt.doctors as any)?.users?.full_name ?? 'Unknown'
               const treatment = (apt.patient_treatments as any)?.treatments?.name ?? 'Unknown'
@@ -115,6 +122,25 @@ export default function StaffDashboardClient({ appointments }: { appointments: a
           </tbody>
         </table>
       </div>
+
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between pt-4 border-t border-gray-800 mt-4">
+          <p className="text-sm text-gray-500">
+            Showing {((page - 1) * PAGE_SIZE) + 1}–{Math.min(page * PAGE_SIZE, filtered.length)} of {filtered.length}
+          </p>
+          <div className="flex items-center gap-2">
+            <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
+              className="p-1.5 rounded-lg border border-gray-700 text-gray-400 hover:text-white disabled:opacity-40 transition-colors">
+              <ChevronLeft size={16} />
+            </button>
+            <span className="text-sm text-gray-400">Page {page} of {totalPages}</span>
+            <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}
+              className="p-1.5 rounded-lg border border-gray-700 text-gray-400 hover:text-white disabled:opacity-40 transition-colors">
+              <ChevronRight size={16} />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
