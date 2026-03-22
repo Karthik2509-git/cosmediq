@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import { SignOutButton } from '@clerk/nextjs'
 import Image from 'next/image'
 import Link from 'next/link'
+import BackupButtons from './BackupButtons'
 
 export default async function AdminDashboard() {
   const { userId } = await auth()
@@ -71,7 +72,7 @@ export default async function AdminDashboard() {
           ))}
         </div>
 
-        {/* Quick access to all portals */}
+        {/* Quick access */}
         <h3 className="font-semibold text-lg mb-4">Quick Access</h3>
         <div className="grid grid-cols-3 gap-4 mb-8">
           {[
@@ -81,6 +82,7 @@ export default async function AdminDashboard() {
             { label: 'User Management', href: '/dashboard/staff/users', desc: 'Assign roles', color: 'border-yellow-800 hover:border-yellow-600' },
             { label: 'Payments', href: '/dashboard/staff/payments', desc: 'Billing overview', color: 'border-pink-800 hover:border-pink-600' },
             { label: 'Manage', href: '/dashboard/staff/manage', desc: 'Add patients, doctors', color: 'border-orange-800 hover:border-orange-600' },
+            { label: 'Audit Trail', href: '/dashboard/admin/audit', desc: 'System activity log', color: 'border-gray-700 hover:border-gray-500' },
           ].map((item) => (
             <Link key={item.label} href={item.href}
               className={`bg-gray-900 rounded-xl p-5 border ${item.color} transition-colors`}>
@@ -88,6 +90,13 @@ export default async function AdminDashboard() {
               <p className="text-sm text-gray-400 mt-1">{item.desc}</p>
             </Link>
           ))}
+        </div>
+
+        {/* Backup Section */}
+        <div className="bg-gray-900 rounded-xl border border-gray-800 p-6 mb-6">
+          <h3 className="font-semibold text-lg mb-2">Data Backup</h3>
+          <p className="text-gray-400 text-sm mb-4">Export clinic data as Excel files for backup purposes.</p>
+          <BackupButtons />
         </div>
 
         {/* System info */}
