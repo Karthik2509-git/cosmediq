@@ -5,13 +5,32 @@ export async function POST(req: Request) {
   try {
     const { patient_id, doctor_id, branch_id, treatment_id, scheduled_at, notes } = await req.json()
 
-    if (!patient_id || !scheduled_at) {
-      return NextResponse.json({ error: 'Patient and date/time are required' }, { status: 400 })
+    if (!patient_id) {
+      return NextResponse.json({ error: 'Patient is required' }, { status: 400 })
+    }
+    if (!scheduled_at) {
+      return NextResponse.json({ error: 'Date and time are required' }, { status: 400 })
     }
 
-    // Find patient treatment - use selected treatment or fall back to active one
-    let patientTreatmentId = null
+    // Prevent scheduling in the past
+    const scheduledDate = new Date(scheduled_at)
+    if (scheduledDate < new Date()) {
+      return NextResponse.json({ error: 'Cannot schedule appointments in the past' }, { status: 400 })
+    }
 
+    // Check for duplicate appointment same patient same time
+    const { data: existing } = await supabase
+      .from('appointments')
+      .select('id')
+      .eq('patient_id', patient_id)
+      .eq('scheduled_at', scheduledDate.toISOString())
+      .single()
+
+    if (existing) {
+      return NextResponse.json({ error: 'Patient already has an appointment at this time' }, { status: 400 })
+    }
+
+    let patientTreatmentId = null
     if (treatment_id) {
       const { data: pt } = await supabase
         .from('patient_treatments')
@@ -32,23 +51,15 @@ export async function POST(req: Request) {
       patientTreatmentId = pt?.id ?? null
     }
 
-    // Use selected doctor or fall back to first doctor
     let finalDoctorId = doctor_id
     if (!finalDoctorId) {
-      const { data: doctor } = await supabase
-        .from('doctors')
-        .select('id')
-        .single()
+      const { data: doctor } = await supabase.from('doctors').select('id').single()
       finalDoctorId = doctor?.id
     }
 
-    // Use selected branch or fall back to first branch
     let finalBranchId = branch_id
     if (!finalBranchId) {
-      const { data: branch } = await supabase
-        .from('branches')
-        .select('id')
-        .single()
+      const { data: branch } = await supabase.from('branches').select('id').single()
       finalBranchId = branch?.id
     }
 
@@ -59,9 +70,9 @@ export async function POST(req: Request) {
         doctor_id: finalDoctorId,
         branch_id: finalBranchId,
         patient_treatment_id: patientTreatmentId,
-        scheduled_at,
+        scheduled_at: scheduledDate.toISOString(),
         status: 'scheduled',
-        notes: notes || null,
+        notes: notes?.trim() || null,
       })
 
     if (appointmentError) {

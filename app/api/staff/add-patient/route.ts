@@ -3,25 +3,55 @@ import { NextResponse } from 'next/server'
 
 export async function POST(req: Request) {
   try {
-    const { patient_id, appointment_id, amount, method, status } = await req.json()
+    const { full_name, email, phone, date_of_birth, blood_group } = await req.json()
 
-    if (!patient_id || !amount) {
-      return NextResponse.json({ error: 'Patient and amount are required' }, { status: 400 })
+    if (!full_name?.trim()) {
+      return NextResponse.json({ error: 'Full name is required' }, { status: 400 })
+    }
+    if (!email?.trim()) {
+      return NextResponse.json({ error: 'Email is required' }, { status: 400 })
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(email)) {
+      return NextResponse.json({ error: 'Invalid email address' }, { status: 400 })
     }
 
-    const { error } = await supabase
-      .from('payments')
+    // Check for duplicate email
+    const { data: existing } = await supabase
+      .from('users')
+      .select('id')
+      .eq('email', email.toLowerCase().trim())
+      .single()
+
+    if (existing) {
+      return NextResponse.json({ error: 'A user with this email already exists' }, { status: 400 })
+    }
+
+    const { data: user, error: userError } = await supabase
+      .from('users')
       .insert({
-        patient_id,
-        appointment_id: appointment_id || null,
-        amount: Number(amount),
-        method,
-        status,
-        paid_at: status === 'paid' ? new Date().toISOString() : null,
+        full_name: full_name.trim(),
+        email: email.toLowerCase().trim(),
+        phone: phone?.trim() || null,
+        role: 'patient'
+      })
+      .select()
+      .single()
+
+    if (userError) {
+      return NextResponse.json({ error: userError.message }, { status: 500 })
+    }
+
+    const { error: patientError } = await supabase
+      .from('patients')
+      .insert({
+        user_id: user.id,
+        date_of_birth: date_of_birth || null,
+        blood_group: blood_group || null,
       })
 
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 })
+    if (patientError) {
+      return NextResponse.json({ error: patientError.message }, { status: 500 })
     }
 
     return NextResponse.json({ success: true })
