@@ -9,6 +9,7 @@ export default async function DashboardPage() {
   if (role === 'doctor') redirect('/dashboard/doctor')
   if (role === 'patient') redirect('/dashboard/patient')
   if (role === 'staff') redirect('/dashboard/staff')
+  if (role === 'admin') redirect('/dashboard/admin')  
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-950">

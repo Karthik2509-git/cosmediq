@@ -16,21 +16,23 @@ const proxy = clerkMiddleware(async (auth, req) => {
   const path = req.nextUrl.pathname
 
   if (path === '/') {
+    if (role === 'admin') return NextResponse.redirect(new URL('/dashboard/admin', req.url))
     if (role === 'doctor') return NextResponse.redirect(new URL('/dashboard/doctor', req.url))
     if (role === 'patient') return NextResponse.redirect(new URL('/dashboard/patient', req.url))
     if (role === 'staff') return NextResponse.redirect(new URL('/dashboard/staff', req.url))
   }
 
-  if (path.startsWith('/dashboard/doctor') && role !== 'doctor')
+  if (path.startsWith('/dashboard/admin') && role !== 'admin')
     return NextResponse.redirect(new URL('/dashboard/' + role, req.url))
-  if (path.startsWith('/dashboard/patient') && role !== 'patient')
+  if (path.startsWith('/dashboard/doctor') && role !== 'doctor' && role !== 'admin')
     return NextResponse.redirect(new URL('/dashboard/' + role, req.url))
-  if (path.startsWith('/dashboard/staff') && role !== 'staff')
+  if (path.startsWith('/dashboard/patient') && role !== 'patient' && role !== 'admin')
+    return NextResponse.redirect(new URL('/dashboard/' + role, req.url))
+  if (path.startsWith('/dashboard/staff') && role !== 'staff' && role !== 'admin')
     return NextResponse.redirect(new URL('/dashboard/' + role, req.url))
 })
 
 export { proxy }
-
 export const config = {
   matcher: ['/((?!_next|.*\\..*).*)'],
 }
