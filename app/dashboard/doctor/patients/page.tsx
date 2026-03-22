@@ -10,13 +10,13 @@ export default async function DoctorPatients() {
 
   const { data: userRecord } = await supabase
     .from('users')
-    .select('id')
+    .select('id, full_name')
     .eq('clerk_id', userId)
     .single()
 
   const { data: doctorRecord } = await supabase
     .from('doctors')
-    .select('id')
+    .select('id, specialization')
     .eq('user_id', userRecord?.id)
     .single()
 
@@ -48,7 +48,11 @@ export default async function DoctorPatients() {
 
   return (
     <div className="min-h-screen bg-gray-950 text-white flex">
-      <DoctorSidebar active="My Patients" />
+      <DoctorSidebar
+        active="My Patients"
+        doctorName={userRecord?.full_name ?? 'Doctor'}
+        specialization={doctorRecord?.specialization ?? 'Hair & Skin'}
+      />
       <div className="flex-1 px-8 py-8 overflow-auto">
         <h2 className="text-2xl font-bold mb-2">My Patients</h2>
         <p className="text-gray-400 mb-8">{patients?.length ?? 0} patients under your care</p>

@@ -3,6 +3,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { SignOutButton } from '@clerk/nextjs'
 import { LayoutDashboard, Users, Calendar, Stethoscope, LogOut } from 'lucide-react'
+import { useEffect, useState } from 'react'
 
 const navItems = [
   { label: 'Dashboard', href: '/dashboard/doctor', icon: LayoutDashboard },
@@ -11,7 +12,11 @@ const navItems = [
   { label: 'Treatments', href: '/dashboard/doctor/treatments', icon: Stethoscope },
 ]
 
-export default function DoctorSidebar({ active }: { active: string }) {
+export default function DoctorSidebar({ active, doctorName, specialization }: {
+  active: string
+  doctorName?: string
+  specialization?: string
+}) {
   return (
     <div className="w-64 border-r border-gray-800 flex flex-col min-h-screen">
       <div className="px-6 py-5 border-b border-gray-800">
@@ -31,8 +36,8 @@ export default function DoctorSidebar({ active }: { active: string }) {
       </nav>
       <div className="px-3 py-4 border-t border-gray-800">
         <div className="px-3 py-2 mb-2">
-          <p className="text-sm font-medium">Dr. Karthik</p>
-          <p className="text-xs text-gray-500">Hair & Skin</p>
+          <p className="text-sm font-medium">Dr. {doctorName ?? 'Karthik'}</p>
+          <p className="text-xs text-gray-500">{specialization ?? 'Hair & Skin'}</p>
         </div>
         <SignOutButton>
           <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-400 hover:bg-gray-800 hover:text-white transition-colors">

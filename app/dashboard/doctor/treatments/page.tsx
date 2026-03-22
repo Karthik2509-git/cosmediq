@@ -1,9 +1,26 @@
+import { auth } from '@clerk/nextjs/server'
 import { supabase } from '@/lib/supabase'
+import { redirect } from 'next/navigation'
 import DoctorSidebar from '../components/Sidebar'
 import AddTreatmentButton from './AddTreatmentButton'
 import EditTreatmentButton from './EditTreatmentButton'
 
 export default async function DoctorTreatments() {
+  const { userId } = await auth()
+  if (!userId) redirect('/login')
+
+  const { data: userRecord } = await supabase
+    .from('users')
+    .select('id, full_name')
+    .eq('clerk_id', userId)
+    .single()
+
+  const { data: doctorRecord } = await supabase
+    .from('doctors')
+    .select('id, specialization')
+    .eq('user_id', userRecord?.id)
+    .single()
+
   const { data: treatments } = await supabase
     .from('treatments')
     .select(`
@@ -23,7 +40,11 @@ export default async function DoctorTreatments() {
 
   return (
     <div className="min-h-screen bg-gray-950 text-white flex">
-      <DoctorSidebar active="Treatments" />
+      <DoctorSidebar
+        active="Treatments"
+        doctorName={userRecord?.full_name ?? 'Doctor'}
+        specialization={doctorRecord?.specialization ?? 'Hair & Skin'}
+      />
 
       <div className="flex-1 px-8 py-8 overflow-auto">
         <div className="flex justify-between items-center mb-2">

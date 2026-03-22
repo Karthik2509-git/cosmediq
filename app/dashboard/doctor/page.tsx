@@ -8,7 +8,6 @@ export default async function DoctorDashboard() {
   const { userId } = await auth()
   if (!userId) redirect('/login')
 
-  // Get doctor record
   const { data: userRecord } = await supabase
     .from('users')
     .select('id, full_name')
@@ -21,29 +20,28 @@ export default async function DoctorDashboard() {
     .eq('user_id', userRecord?.id)
     .single()
 
-    const doctorId = doctorRecord?.id
+  const doctorId = doctorRecord?.id
+  const doctorName = userRecord?.full_name ?? 'Doctor'
 
-    if (!userRecord || !doctorRecord) {
-      return (
-        <div className="min-h-screen bg-gray-950 text-white flex">
-          <DoctorSidebar active="Dashboard" />
-          <div className="flex-1 px-8 py-8 flex items-center justify-center">
-            <div className="text-center">
-              <h2 className="text-xl font-bold mb-2">Doctor profile not found</h2>
-              <p className="text-gray-400 text-sm">Your account is not linked to a doctor profile. Please contact admin.</p>
-            </div>
+  if (!userRecord || !doctorRecord) {
+    return (
+      <div className="min-h-screen bg-gray-950 text-white flex">
+        <DoctorSidebar active="Dashboard" doctorName={doctorName} specialization="Hair & Skin" />
+        <div className="flex-1 px-8 py-8 flex items-center justify-center">
+          <div className="text-center">
+            <h2 className="text-xl font-bold mb-2">Doctor profile not found</h2>
+            <p className="text-gray-400 text-sm">Your account is not linked to a doctor profile. Please contact admin.</p>
           </div>
         </div>
-      )
-    }
-  const doctorName = userRecord?.full_name ?? 'Doctor'
+      </div>
+    )
+  }
 
   const today = new Date()
   today.setHours(0, 0, 0, 0)
   const tomorrow = new Date(today)
   tomorrow.setDate(tomorrow.getDate() + 1)
 
-  // Today's appointments for this doctor
   const { data: appointments } = await supabase
     .from('appointments')
     .select(`
@@ -59,7 +57,6 @@ export default async function DoctorDashboard() {
     .lte('scheduled_at', tomorrow.toISOString())
     .order('scheduled_at')
 
-  // Unique patients for this doctor
   const { data: doctorAppointments } = await supabase
     .from('appointments')
     .select('patient_id')
@@ -67,13 +64,11 @@ export default async function DoctorDashboard() {
 
   const uniquePatients = new Set(doctorAppointments?.map(a => a.patient_id) ?? []).size
 
-  // Active treatments
   const { count: activetreatments } = await supabase
     .from('patient_treatments')
     .select('*', { count: 'exact', head: true })
     .eq('status', 'active')
 
-  // Completed today for this doctor
   const { count: completedToday } = await supabase
     .from('appointments')
     .select('*', { count: 'exact', head: true })
@@ -87,7 +82,11 @@ export default async function DoctorDashboard() {
 
   return (
     <div className="min-h-screen bg-gray-950 text-white flex">
-      <DoctorSidebar active="Dashboard" />
+      <DoctorSidebar
+        active="Dashboard"
+        doctorName={doctorName}
+        specialization={doctorRecord?.specialization ?? 'Hair & Skin'}
+      />
 
       <div className="flex-1 px-8 py-8 overflow-auto">
         <h2 className="text-2xl font-bold mb-2">{greeting}, Dr. {doctorName}!</h2>
