@@ -2,11 +2,12 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { SignOutButton } from '@clerk/nextjs'
-import { LayoutDashboard, CreditCard, Settings, Users, LogOut } from 'lucide-react'
+import { LayoutDashboard, CreditCard, Settings, Users, BarChart2, LogOut } from 'lucide-react'
 import PendingBadge from './PendingBadge'
 
 const navItems = [
   { label: 'Dashboard', href: '/dashboard/staff', icon: LayoutDashboard },
+  { label: 'Analytics', href: '/dashboard/staff/analytics', icon: BarChart2 },
   { label: 'Payments', href: '/dashboard/staff/payments', icon: CreditCard },
   { label: 'Manage', href: '/dashboard/staff/manage', icon: Settings },
   { label: 'Users', href: '/dashboard/staff/users', icon: Users },

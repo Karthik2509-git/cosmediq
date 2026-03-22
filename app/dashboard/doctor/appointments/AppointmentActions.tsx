@@ -116,7 +116,9 @@ export default function AppointmentActions({ appointmentId, patientTreatmentId, 
           Cancel
         </button>
       </div>
-      {message && <p className="text-xs text-red-400">{message}</p>}
+      {message && (
+  <p className="text-xs text-green-400 mt-1">{message}</p>
+)}
 
       {showReschedule && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
