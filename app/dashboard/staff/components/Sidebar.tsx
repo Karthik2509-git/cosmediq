@@ -3,6 +3,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { SignOutButton } from '@clerk/nextjs'
 import { LayoutDashboard, CreditCard, Settings, Users, LogOut } from 'lucide-react'
+import PendingBadge from './PendingBadge'
 
 const navItems = [
   { label: 'Dashboard', href: '/dashboard/staff', icon: LayoutDashboard },
@@ -30,6 +31,7 @@ export default function StaffSidebar({ active }: { active: string }) {
         ))}
       </nav>
       <div className="px-3 py-4 border-t border-gray-800">
+        <PendingBadge />
         <div className="px-3 py-2 mb-2">
           <p className="text-sm font-medium">Staff</p>
           <p className="text-xs text-gray-500">Cosmediq Vizag</p>
