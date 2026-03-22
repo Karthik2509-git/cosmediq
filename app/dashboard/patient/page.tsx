@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabase'
 import { SignOutButton } from '@clerk/nextjs'
 import Image from 'next/image'
 import { redirect } from 'next/navigation'
+import RequestAppointmentButton from './RequestAppointmentButton'
 
 export default async function PatientDashboard() {
   const { userId } = await auth()
@@ -184,7 +185,10 @@ export default async function PatientDashboard() {
         <div className="grid grid-cols-2 gap-6">
           {/* Appointments */}
           <div className="bg-gray-900 rounded-xl border border-gray-800 p-6">
-            <h3 className="font-semibold text-lg mb-4">My Appointments</h3>
+          <div className="flex justify-between items-center mb-4">
+  <h3 className="font-semibold text-lg">My Appointments</h3>
+  <RequestAppointmentButton patientId={patient.id} />
+</div>
             {appointments && appointments.length > 0 ? (
               <div className="space-y-3">
                 {appointments.map((apt) => {
