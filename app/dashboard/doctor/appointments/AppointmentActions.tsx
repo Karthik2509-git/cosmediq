@@ -15,7 +15,7 @@ export default function AppointmentActions({ appointmentId, patientTreatmentId, 
   async function handleAction(action: 'complete' | 'cancel' | 'noshow') {
     setLoading(true)
     setMessage('')
-
+  
     const res = await fetch('/api/doctor/appointment-action', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -24,7 +24,12 @@ export default function AppointmentActions({ appointmentId, patientTreatmentId, 
     const data = await res.json()
     if (data.success) {
       setStatus(action === 'complete' ? 'completed' : action === 'cancel' ? 'cancelled' : 'noshow')
-      window.location.reload()
+      if (action === 'complete') {
+        setMessage('✅ Sitting completed! Please remind staff to record payment.')
+        setTimeout(() => { setMessage(''); window.location.reload() }, 3000)
+      } else {
+        window.location.reload()
+      }
     } else {
       setMessage(data.error)
     }

@@ -184,8 +184,16 @@ function AssignTreatmentTab() {
         body: JSON.stringify(form),
       })
       const data = await res.json()
-      setMessage(data.success ? '✅ Treatment assigned!' : '❌ ' + data.error)
-      if (data.success) setForm({ patient_id: '', treatment_id: '', doctor_id: '', start_date: '' })
+      if (data.success) {
+        setMessage('✅ Treatment assigned! Don\'t forget to schedule an appointment for this patient.')
+        setForm({ patient_id: '', treatment_id: '', doctor_id: '', start_date: '' })
+        // Auto switch to appointments tab after 2 seconds
+        setTimeout(() => {
+          setMessage('')
+        }, 4000)
+      } else {
+        setMessage('❌ ' + data.error)
+      }
       setLoading(false)
     }
   
