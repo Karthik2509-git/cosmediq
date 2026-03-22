@@ -53,7 +53,7 @@ export default function NotificationBell() {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-10 w-80 bg-gray-900 border border-gray-800 rounded-xl shadow-xl z-50">
+        <div className="absolute left-0 bottom-12 w-80 bg-gray-900 border border-gray-800 rounded-xl shadow-xl z-50">
           <div className="flex justify-between items-center px-4 py-3 border-b border-gray-800">
             <h3 className="font-semibold text-sm">Notifications</h3>
             <button onClick={() => setOpen(false)}>

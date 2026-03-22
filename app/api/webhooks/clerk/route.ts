@@ -71,7 +71,10 @@ export async function POST(req: Request) {
         console.error('Supabase user insert error:', userError)
         return new Response('Database error', { status: 500 })
       }
-
+      if (role === 'admin') {
+        // Admin doesn't need a separate record
+        console.log('Admin user created:', newUser?.id)
+      }
       // If patient, create patient record too
       if (role === 'patient' && newUser) {
         const { error: patientError } = await supabase

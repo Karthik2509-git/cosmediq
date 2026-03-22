@@ -2,6 +2,8 @@ import { supabase } from '@/lib/supabase'
 import StaffSidebar from '../components/Sidebar'
 import RecordPaymentButton from './RecordPaymentButton'
 import PaymentActions from './PaymentActions'
+import ExportButton from '@/app/components/ExportButton'
+
 
 export default async function StaffPayments() {
   const { data: payments } = await supabase
@@ -29,10 +31,24 @@ export default async function StaffPayments() {
       <StaffSidebar active="Payments" />
 
       <div className="flex-1 px-8 py-8 overflow-auto">
-        <div className="flex justify-between items-center mb-2">
-          <h2 className="text-2xl font-bold">Payments</h2>
-          <RecordPaymentButton patients={patients ?? []} />
-        </div>
+      <div className="flex justify-between items-center mb-2">
+  <h2 className="text-2xl font-bold">Payments</h2>
+  <div className="flex items-center gap-3">
+    <ExportButton
+      filename="cosmediq_payments"
+      label="Export Excel"
+      data={payments?.map(p => ({
+        Patient: (p.patients as any)?.users?.full_name ?? 'Unknown',
+        Treatment: (p.appointments as any)?.patient_treatments?.treatments?.name ?? '—',
+        Amount: `₹${Number(p.amount).toLocaleString('en-IN')}`,
+        Method: p.method ?? '—',
+        Status: p.status,
+        Date: new Date(p.created_at).toLocaleDateString('en-IN'),
+      })) ?? []}
+    />
+    <RecordPaymentButton patients={patients ?? []} />
+  </div>
+</div>
         <p className="text-gray-400 mb-8">Billing and payment management</p>
 
         <div className="grid grid-cols-3 gap-4 mb-8">

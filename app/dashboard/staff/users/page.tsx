@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react'
 import StaffSidebar from '../components/Sidebar'
 
-const ROLES = ['patient', 'doctor', 'staff']
+const ROLES = ['patient', 'doctor', 'staff', 'admin']
 
 export default function UsersPage() {
   const [users, setUsers] = useState<any[]>([])
@@ -118,6 +118,7 @@ export default function UsersPage() {
                     <td className="px-6 py-4">
                       {user.role ? (
                         <span className={`text-xs px-2 py-1 rounded-full capitalize ${
+                          user.role === 'admin' ? 'bg-red-900 text-red-300' :
                           user.role === 'doctor' ? 'bg-blue-900 text-blue-300' :
                           user.role === 'staff' ? 'bg-purple-900 text-purple-300' :
                           'bg-green-900 text-green-300'

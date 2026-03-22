@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabase'
 import { redirect } from 'next/navigation'
 import DoctorSidebar from '../../components/Sidebar'
 import Link from 'next/link'
+import FileUpload from './FileUpload'
 
 type Props = {
   params: Promise<{ id: string }>
@@ -37,7 +38,6 @@ export default async function PatientProfile(props: Props) {
     .eq('patient_id', id)
     .order('created_at', { ascending: false })
 
-    console.log('ID:', id, 'Patient:', patient)
     if (!patient) redirect('/dashboard/doctor/patients')
 
   const name = (patient.users as any)?.full_name ?? 'Unknown'
@@ -78,9 +78,12 @@ export default async function PatientProfile(props: Props) {
                 </div>
               </div>
             </div>
-            <div className="text-right">
-              <p className="text-xs text-gray-500">Total paid</p>
-              <p className="text-xl font-bold text-green-400">₹{totalPaid.toLocaleString('en-IN')}</p>
+            <div className="flex flex-col items-end gap-3">
+              <div className="text-right">
+                <p className="text-xs text-gray-500">Total paid</p>
+                <p className="text-xl font-bold text-green-400">₹{totalPaid.toLocaleString('en-IN')}</p>
+              </div>
+              <FileUpload patientId={id} onUpload={() => {}} />
             </div>
           </div>
         </div>
@@ -184,7 +187,49 @@ export default async function PatientProfile(props: Props) {
             </tbody>
           </table>
         </div>
+        <PatientFiles patientId={id} />
       </div>
+    </div>
+  )
+}
+async function PatientFiles({ patientId }: { patientId: string }) {
+  const { data: files } = await supabase
+    .from('patient_files')
+    .select('*')
+    .eq('patient_id', patientId)
+    .order('created_at', { ascending: false })
+
+  const categoryColors: Record<string, string> = {
+    'before-after': 'bg-purple-900 text-purple-300',
+    'report': 'bg-blue-900 text-blue-300',
+    'prescription': 'bg-green-900 text-green-300',
+    'consent': 'bg-yellow-900 text-yellow-300',
+    'general': 'bg-gray-700 text-gray-300',
+  }
+
+  return (
+    <div className="bg-gray-900 rounded-xl border border-gray-800 p-6 mt-6">
+      <h3 className="font-semibold text-lg mb-4">Patient Files</h3>
+      {files && files.length > 0 ? (
+        <div className="grid grid-cols-3 gap-4">
+          {files.map((f) => (
+            <a key={f.id} href={f.file_url} target="_blank" rel="noopener noreferrer"
+              className="bg-gray-800 rounded-lg p-4 hover:bg-gray-700 transition-colors">
+              <div className="flex items-start justify-between mb-2">
+                <span className={`text-xs px-2 py-0.5 rounded-full capitalize ${categoryColors[f.category] ?? 'bg-gray-700 text-gray-300'}`}>
+                  {f.category?.replace(/-/g, ' ')}
+                </span>
+              </div>
+              <p className="text-sm text-white truncate">{f.file_name}</p>
+              <p className="text-xs text-gray-500 mt-1">
+                {new Date(f.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+              </p>
+            </a>
+          ))}
+        </div>
+      ) : (
+        <p className="text-gray-500 text-sm">No files uploaded yet.</p>
+      )}
     </div>
   )
 }
