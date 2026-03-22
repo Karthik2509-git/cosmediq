@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase'
 import { NextResponse } from 'next/server'
+import { logAction } from '@/lib/audit'
 
 export async function POST(req: Request) {
   try {
@@ -21,7 +22,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Invalid payment status' }, { status: 400 })
     }
 
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('payments')
       .insert({
         patient_id,
@@ -31,10 +32,19 @@ export async function POST(req: Request) {
         status,
         paid_at: status === 'paid' ? new Date().toISOString() : null,
       })
+      .select()
+      .single()
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
+
+    await logAction({
+      action: 'PAYMENT_RECORDED',
+      entity: 'payments',
+      entity_id: data?.id,
+      details: { patient_id, amount, method, status }
+    })
 
     return NextResponse.json({ success: true })
   } catch (err) {

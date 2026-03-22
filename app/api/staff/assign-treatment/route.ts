@@ -1,15 +1,15 @@
 import { supabase } from '@/lib/supabase'
 import { NextResponse } from 'next/server'
+import { logAction } from '@/lib/audit'
 
 export async function POST(req: Request) {
   try {
-    const { patient_id, treatment_id, start_date } = await req.json()
+    const { patient_id, treatment_id, doctor_id, start_date } = await req.json()
 
     if (!patient_id || !treatment_id || !start_date) {
       return NextResponse.json({ error: 'All fields are required' }, { status: 400 })
     }
 
-    // Get treatment details for sittings total
     const { data: treatment, error: treatmentError } = await supabase
       .from('treatments')
       .select('total_sittings')
@@ -20,7 +20,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Treatment not found' }, { status: 404 })
     }
 
-    // Check if already assigned
     const { data: existing } = await supabase
       .from('patient_treatments')
       .select('id')
@@ -33,11 +32,21 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'This treatment is already active for this patient' }, { status: 400 })
     }
 
+    let finalDoctorId = doctor_id
+    if (!finalDoctorId) {
+      const { data: doctor } = await supabase
+        .from('doctors')
+        .select('id')
+        .single()
+      finalDoctorId = doctor?.id
+    }
+
     const { error } = await supabase
       .from('patient_treatments')
       .insert({
         patient_id,
         treatment_id,
+        doctor_id: finalDoctorId,
         start_date,
         sittings_completed: 0,
         sittings_total: treatment.total_sittings,
@@ -47,6 +56,12 @@ export async function POST(req: Request) {
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
+
+    await logAction({
+      action: 'TREATMENT_ASSIGNED',
+      entity: 'patient_treatments',
+      details: { patient_id, treatment_id, doctor_id: finalDoctorId }
+    })
 
     return NextResponse.json({ success: true })
   } catch (err) {

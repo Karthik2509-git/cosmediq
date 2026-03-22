@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase'
 import { NextResponse } from 'next/server'
+import { logAction } from '@/lib/audit'
 
 export async function POST(req: Request) {
   try {
@@ -10,13 +11,11 @@ export async function POST(req: Request) {
     }
 
     if (action === 'complete') {
-      // Mark appointment as completed
       await supabase
         .from('appointments')
         .update({ status: 'completed' })
         .eq('id', appointmentId)
 
-      // Increment sittings
       const { data: treatment } = await supabase
         .from('patient_treatments')
         .select('sittings_completed, sittings_total')
@@ -34,16 +33,35 @@ export async function POST(req: Request) {
           })
           .eq('id', patientTreatmentId)
       }
+
+      await logAction({
+        action: 'APPOINTMENT_COMPLETED',
+        entity: 'appointments',
+        entity_id: appointmentId,
+        details: { patientTreatmentId }
+      })
     } else if (action === 'cancel') {
       await supabase
         .from('appointments')
         .update({ status: 'cancelled' })
         .eq('id', appointmentId)
+
+      await logAction({
+        action: 'APPOINTMENT_CANCELLED',
+        entity: 'appointments',
+        entity_id: appointmentId,
+      })
     } else if (action === 'noshow') {
       await supabase
         .from('appointments')
         .update({ status: 'noshow' })
         .eq('id', appointmentId)
+
+      await logAction({
+        action: 'APPOINTMENT_NOSHOW',
+        entity: 'appointments',
+        entity_id: appointmentId,
+      })
     }
 
     return NextResponse.json({ success: true })
