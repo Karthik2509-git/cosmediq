@@ -21,7 +21,21 @@ export default async function DoctorDashboard() {
     .eq('user_id', userRecord?.id)
     .single()
 
-  const doctorId = doctorRecord?.id
+    const doctorId = doctorRecord?.id
+
+    if (!userRecord || !doctorRecord) {
+      return (
+        <div className="min-h-screen bg-gray-950 text-white flex">
+          <DoctorSidebar active="Dashboard" />
+          <div className="flex-1 px-8 py-8 flex items-center justify-center">
+            <div className="text-center">
+              <h2 className="text-xl font-bold mb-2">Doctor profile not found</h2>
+              <p className="text-gray-400 text-sm">Your account is not linked to a doctor profile. Please contact admin.</p>
+            </div>
+          </div>
+        </div>
+      )
+    }
   const doctorName = userRecord?.full_name ?? 'Doctor'
 
   const today = new Date()
