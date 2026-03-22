@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { Search, ChevronLeft, ChevronRight } from 'lucide-react'
+import ExportButton from '@/app/components/ExportButton'
 
 const PAGE_SIZE = 10
 
@@ -40,9 +41,24 @@ export default function StaffDashboardClient({ appointments }: { appointments: a
   return (
     <div className="bg-gray-900 rounded-xl border border-gray-800 p-6">
       <div className="flex justify-between items-center mb-4">
-        <h3 className="font-semibold text-lg">All appointments</h3>
-        <span className="text-xs text-gray-500">{filtered.length} shown</span>
-      </div>
+  <h3 className="font-semibold text-lg">All appointments</h3>
+  <div className="flex items-center gap-3">
+    <span className="text-xs text-gray-500">{filtered.length} shown</span>
+    <ExportButton
+      filename="cosmediq_appointments"
+      label="Export Excel"
+      data={filtered.map(apt => ({
+        Patient: (apt.patients as any)?.users?.full_name ?? 'Unknown',
+        Treatment: (apt.patient_treatments as any)?.treatments?.name ?? 'Unknown',
+        Doctor: (apt.doctors as any)?.users?.full_name ?? 'Unknown',
+        Branch: (apt.branches as any)?.name ?? 'Unknown',
+        'Date & Time': new Date(apt.scheduled_at).toLocaleString('en-IN'),
+        Status: apt.status,
+      }))}
+    />
+  </div>
+</div>
+
 
       <div className="flex gap-3 mb-6">
         <div className="relative flex-1">

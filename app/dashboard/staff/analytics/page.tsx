@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase'
 import StaffSidebar from '../components/Sidebar'
+import ExportButton from '@/app/components/ExportButton'
 
 export default async function AnalyticsPage() {
   // Revenue by month
@@ -73,8 +74,32 @@ export default async function AnalyticsPage() {
       <StaffSidebar active="Analytics" />
 
       <div className="flex-1 px-8 py-8 overflow-auto">
-        <h2 className="text-2xl font-bold mb-2">Analytics</h2>
-        <p className="text-gray-400 mb-8">Clinic performance overview</p>
+      <div className="flex justify-between items-center mb-2">
+  <h2 className="text-2xl font-bold">Analytics</h2>
+  <div className="flex gap-3">
+    <ExportButton
+      filename="cosmediq_treatments"
+      label="Export Treatments"
+      data={treatmentStats.map(t => ({
+        Treatment: t.name,
+        Category: t.category,
+        'Total Patients': t.total,
+        Active: t.active,
+        Completed: t.completed,
+        'Revenue Generated': `₹${t.revenue.toLocaleString('en-IN')}`,
+      }))}
+    />
+    <ExportButton
+      filename="cosmediq_revenue"
+      label="Export Revenue"
+      data={Object.entries(monthlyRevenue).map(([month, amount]) => ({
+        Month: month,
+        Revenue: `₹${amount.toLocaleString('en-IN')}`,
+      }))}
+    />
+  </div>
+</div>
+<p className="text-gray-400 mb-8">Clinic performance overview</p>
 
         {/* Top stats */}
         <div className="grid grid-cols-4 gap-4 mb-8">
