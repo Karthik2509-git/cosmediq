@@ -4,6 +4,14 @@ import StaffSidebar from '../components/Sidebar'
 
 export default function ManagePage() {
   const [activeTab, setActiveTab] = useState<'patients' | 'appointments' | 'branches' | 'doctors' | 'assign' | 'staff'>('patients')
+  
+  useEffect(() => {
+    function handleSwitch(e: any) {
+      setActiveTab(e.detail)
+    }
+    window.addEventListener('switchTab', handleSwitch)
+    return () => window.removeEventListener('switchTab', handleSwitch)
+  }, [])
 
   return (
     <div className="min-h-screen bg-gray-950 text-white flex">
@@ -185,12 +193,14 @@ function AssignTreatmentTab() {
       })
       const data = await res.json()
       if (data.success) {
-        setMessage('✅ Treatment assigned! Don\'t forget to schedule an appointment for this patient.')
+        setMessage('✅ Treatment assigned! Redirecting to schedule appointment...')
         setForm({ patient_id: '', treatment_id: '', doctor_id: '', start_date: '' })
-        // Auto switch to appointments tab after 2 seconds
         setTimeout(() => {
           setMessage('')
-        }, 4000)
+          // Auto switch to appointments tab
+          const event = new CustomEvent('switchTab', { detail: 'appointments' })
+          window.dispatchEvent(event)
+        }, 2000)
       } else {
         setMessage('❌ ' + data.error)
       }
